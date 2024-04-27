@@ -1,0 +1,7 @@
+database.db
+.venv/
+*/__pycache__/
+*/*/__pycache__/
+*/migrations/*
+!*/migrations/__init__.py
+venv/
