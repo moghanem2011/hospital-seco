@@ -15,6 +15,14 @@ from .models import (
     Reservation
 )
 
+
+class PatientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = ['name', 'photo']
+
+    photo = serializers.ImageField(use_url=True)
+
 class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
