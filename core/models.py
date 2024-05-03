@@ -15,8 +15,8 @@ class managment(models.Model):
 
 class Patient(models.Model):
     GENDER_TABLE =(
-        ('M', 'Male'),
-        ('F', 'Female'),
+        ('Male', 'Male'),
+        ('Female', 'Female'),
     )
     BLOOD_TABLE=(
         ('A+', 'A+'),
@@ -35,7 +35,7 @@ class Patient(models.Model):
     photo = models.ImageField(upload_to='patient_images/',null=True, blank=True)
     phone_number = models.CharField(max_length=15)
     address = models.CharField(max_length=100)
-    gender = models.CharField(max_length=1, choices=GENDER_TABLE)
+    gender = models.CharField(max_length=6, choices=GENDER_TABLE)
     blood = models.CharField(max_length=3, choices=BLOOD_TABLE)
     patient_status = models.CharField(max_length=100)
 
