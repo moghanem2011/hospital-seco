@@ -26,9 +26,11 @@ class ReservationSerializer(ModelSerializer):
         fields = '__all__'  # Ensure time_slot is included
         
 class doctorSerializer(serializers.ModelSerializer):
+    
+    specialty_name = serializers.CharField(source='specialty.title', read_only=True)
     class Meta:
         model = Doctor
-        fields = ['id', 'firstname', 'lastname', 'age', 'address', 'photo', 'doctor_price', 'university', 'specialty']
+        fields = ['id', 'firstname', 'lastname', 'age', 'address', 'photo', 'doctor_price', 'university','specialty_name', 'specialty']
 
 
 class UserListSerializer(ModelSerializer):
