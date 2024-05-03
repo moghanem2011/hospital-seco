@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from yaml import serialize
+
+from core.models import Patient
 from .serializers import HospitalUserSerializer #PatientProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 class RegisterStepOneAPIView(APIView):
@@ -27,15 +29,6 @@ class RegisterStepOneAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-#class RegisterStepTwoAPIView(APIView):
-#    permission_classes = [IsAuthenticated]
-
-#    def post(self, request):
-#        serializer = PatientProfileSerializer(data=request.data, context={'request': request})
-#        if serializer.is_valid():
-#            serializer.save()
-#            return Response({"success": "Profile created successfully."}, status=201)
-#        return Response(serializer.errors, status=400)
 
         
 class LoginAPIView(APIView):
@@ -44,9 +37,11 @@ class LoginAPIView(APIView):
         password = request.data.get('password')
         user = authenticate(username=username, password=password)
         if user:
+            patient = Patient.objects.get(user=user)
+            patient_id = patient.id
             token, created = Token.objects.get_or_create(user=user)
             return Response({
-                "user_id": user.id,
+                "patient_id": patient_id,
                 'token': token.key}, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Invalid Credentials"}, status=status.HTTP_400_BAD_REQUEST)
@@ -63,22 +58,4 @@ class LogoutAPIView(APIView):
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-# Logout View - Uncomment and ensure it uses the correct serializer
-#class LogoutAPIView(generics.GenericAPIView):
-   # serializer_class = LoginSerializer
-   # permission_classes = (IsAuthenticated,)
-  #  def post(self, request):
-       # serializer = self.serializer_class(data=request.data)
-       # serializer.is_valid(raise_exception=True)
-      #  serializer.save()
-        #return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-# class LogoutAPIView(generics.GenericAPIView):
-#     serializer_class = LogoutSerializer
-#     permission_classes = (IsAuthenticated,)
-#     def post(self, request):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
