@@ -26,7 +26,7 @@ class PatientSerializer(serializers.ModelSerializer):
 class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
-        fields = ['id', 'title']
+        fields = ['id', 'title','photo']
 
 class ReservationSerializer(ModelSerializer):
     class Meta:
