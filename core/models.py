@@ -61,7 +61,7 @@ class Pharmacist(models.Model):
 
 class Specialty(models.Model):
     title = models.CharField(max_length=150)
-    
+    photo = models.ImageField(upload_to='specialty_photos/', null=True, blank=True)
 
     def __str__(self) -> str:
         return self.title
