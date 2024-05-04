@@ -23,6 +23,35 @@ from user_auth.permissions import (
     PharmacyPermission
 )
 
+
+
+class DoctorSearchAPIView(generics.ListAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = doctorSerializer
+
+    def get_queryset(self):
+        print(self.request.query_params)
+        queryset = super().get_queryset()
+        firstname = self.request.query_params.get('firstname', None)
+        lastname = self.request.query_params.get('lastname', None)
+        specialty_id = self.request.query_params.get('specialty_id')
+        print(f"Searching for: firstname={firstname}, lastname={lastname}")  # Debug print
+
+        if specialty_id:
+            queryset = queryset.filter(specialty_id=specialty_id)
+
+        if firstname:
+            queryset = queryset.filter(firstname__icontains=firstname)
+            
+        if lastname:
+            queryset = queryset.filter(lastname__icontains=lastname)
+
+        return queryset
+
+    
+
+    
+
 class DoctorReservationAPIView(generics.ListAPIView):
     serializer_class = ReservationSerializer
 

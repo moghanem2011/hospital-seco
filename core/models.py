@@ -73,7 +73,7 @@ class Doctor(models.Model):
     photo = models.ImageField(upload_to='doctor_photos/', null=True, blank=True)
     doctor_price= models.CharField(max_length=15)
     university= models.CharField(max_length=30)
-    specialty= models.ForeignKey(Specialty, on_delete=models.CASCADE)
+    specialty= models.ForeignKey(Specialty, related_name='doctors' , on_delete=models.CASCADE)
     pharmacyID = models.ForeignKey(Pharmacy, on_delete=models.CASCADE,default=1)
 
 

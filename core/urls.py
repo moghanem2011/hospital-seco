@@ -16,6 +16,7 @@ urlpatterns = [
     path('specialties/<int:specialty_id>/doctors/', views.DoctorsBySpecialty.as_view(), name='doctors-by-specialty'),
     path('doctor/<int:doctor_id>/reservations/', views.DoctorReservationAPIView.as_view(), name='doctor-reservations'),
     path('register/step2/', views.RegisterStepTwoAPIView.as_view(), name='register-step2'),  
+    path('doctors/search/', views.DoctorSearchAPIView.as_view(), name='doctor-search')
 ]
 
 
