@@ -214,7 +214,8 @@ class RegisterStepTwoAPIView(APIView):
         # Remove file data from request.data
         request_data = request.data.copy()
         request_data.pop('photo', None)
-        
+        print(request.data)  # Print the entire request data
+        print(request.FILES)  # Print the files included in the request
         # Pass file data and other form data to the serializer
         serializer = PatientProfileSerializer(data=request_data, files={'photo': file_data})
         
