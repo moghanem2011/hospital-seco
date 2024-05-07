@@ -74,7 +74,7 @@ class Doctor(models.Model):
     lastname = models.CharField(max_length=100)
     age = models.PositiveIntegerField()
     address = models.CharField(max_length=100)
-    photo = models.ImageField(upload_to='doctor_photos/', null=True, blank=True)
+    photo = models.ImageField(upload_to='doctor_photos/', blank=True)
     doctor_price= models.CharField(max_length=15)
     university= models.CharField(max_length=30)
     specialty= models.ForeignKey(Specialty, related_name='doctors' , on_delete=models.CASCADE)
