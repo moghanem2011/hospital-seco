@@ -205,14 +205,12 @@ class patientDetail(generics.RetrieveUpdateDestroyAPIView, generics.CreateAPIVie
 
 
 class RegisterStepTwoAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request):
-        serializer = PatientProfileSerializer(data=request.data, context={'request': request})
+        serializer = PatientProfileSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"success": "Profile created successfully."}, status=201)
-        return Response(serializer.errors, status=400)
+            return Response({"success": "Profile created successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class pharmacyList(generics.ListCreateAPIView):

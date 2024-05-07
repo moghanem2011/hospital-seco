@@ -62,6 +62,7 @@ class PatientSerializer(ModelSerializer):
         exclude = ["patient_status"]
 
 class PatientProfileSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField()
     class Meta:
         model = Patient
         exclude = ["patient_status"]
