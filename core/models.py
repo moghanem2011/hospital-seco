@@ -35,7 +35,7 @@ class Patient(models.Model):
     firstname = models.CharField(max_length=100)
     lastname = models.CharField(max_length=100)
     age = models.PositiveIntegerField()
-    photo = models.ImageField(upload_to='patient_images/',null=True, blank=True)
+    photo = models.FileField(upload_to='patient_images/',null=True, blank=True)
     phone_number = models.CharField(max_length=15)
     address = models.CharField(max_length=100)
     gender = models.CharField(max_length=6, choices=GENDER_TABLE)
