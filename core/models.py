@@ -105,6 +105,9 @@ class TimeSlot(models.Model):
         ('Sunday', 'Sunday'),
     )
     day = models.CharField(max_length=9, choices=DAY_OF_WEEK)
+    is_booked = models.BooleanField(default=False)
+    patient = models.ForeignKey('Patient', on_delete=models.SET_NULL, null=True, blank=True)
+
 
     def __str__(self):
         return f"{self.day} {self.start_time} - {self.end_time}"

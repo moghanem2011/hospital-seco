@@ -21,7 +21,7 @@ from .models import (
 class TimeSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeSlot
-        fields = ['start_time', 'end_time', 'day']
+        fields = ['id','start_time', 'end_time', 'day']
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient

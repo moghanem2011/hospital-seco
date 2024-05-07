@@ -17,7 +17,8 @@ urlpatterns = [
     path('doctors/search/', views.DoctorSearchAPIView.as_view(), name='doctor-search'),
     path('generate-time-slots/', views.generate_time_slots_api, name='generate_time_slots_api'),
     path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor, name='doctor_time_slots'),
-    
+    path('book-appointment/', views.book_appointment, name='book_appointment'),
+    path('doctor/<int:doctor_id>/patients/', views.get_patients_for_doctor, name='get_patients_for_doctor'),
 ]
 
 
