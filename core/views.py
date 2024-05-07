@@ -208,21 +208,11 @@ class RegisterStepTwoAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Extract file data from request.FILES
-        file_data = request.FILES.get('photo')
-        
-        # Remove file data from request.data
-        request_data = request.data.copy()
-        request_data.pop('photo', None)
-        print(request.data)  # Print the entire request data
-        print(request.FILES)  # Print the files included in the request
-        # Pass file data and other form data to the serializer
-        serializer = PatientProfileSerializer(data=request_data, files={'photo': file_data})
-        
+        serializer = PatientProfileSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response({"success": "Profile created successfully."}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"success": "Profile created successfully."}, status=201)
+        return Response(serializer.errors, status=400)
 
 
 class pharmacyList(generics.ListCreateAPIView):
