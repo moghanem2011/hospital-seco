@@ -77,6 +77,8 @@ SIMPLE_JWT = {
 }
 
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 10  # 10 MB
+
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
