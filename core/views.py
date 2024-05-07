@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import Doctor, Specialty, managment, Patient, Pharmacy, Refound, Reception,Reservation
+from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
 from .serializers import (
+    
     SpecialtySerializer,
+    TimeSlotSerializer,
     doctorSerializer,
     managmentSerializer,
     PatientSerializer,
@@ -11,9 +13,11 @@ from .serializers import (
     PharmacySerializer,
     ReceptionSerializer,
     RefoundSerializer,
-    ReservationSerializer
+   
 )
-
+from rest_framework.decorators import api_view
+from django.shortcuts import get_object_or_404
+from datetime import datetime
 from rest_framework import generics,status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
@@ -23,6 +27,69 @@ from user_auth.permissions import (
     PharmacyPermission
 )
 
+
+@api_view(['POST'])
+def generate_time_slots_api(request):
+    doctor_id = request.data.get('doctor_id')
+    start_datetime_str = request.data.get('start_datetime_str')
+    end_datetime_str = request.data.get('end_datetime_str')
+    slot_duration = request.data.get('slot_duration')
+    buffer_duration = request.data.get('buffer_duration')
+
+    if not start_datetime_str or not end_datetime_str:
+        return Response({"error": "Start datetime or end datetime is missing."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        doctor = Doctor.objects.get(id=doctor_id)
+    except Doctor.DoesNotExist:
+        return Response({"error": "Doctor with the provided ID does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Extract hour part from start and end datetimes
+    start_hour = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M:%S').strftime('%H')
+    end_hour = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M:%S').strftime('%H')
+
+    # Convert hour part to desired format (e.g., "23 FEB")
+    start_hour_str = datetime.strptime(start_hour, '%H').strftime('%d %b')
+    end_hour_str = datetime.strptime(end_hour, '%H').strftime('%d %b')
+
+    # Combine start and end hour strings
+    hour_range = f"{start_hour_str} - {end_hour_str}"
+
+    # Generate time slots
+    time_slots = generate_time_slots(doctor=doctor, start_datetime=start_datetime_str, end_datetime=end_datetime_str, slot_duration=slot_duration, buffer_duration=buffer_duration)
+
+    # Serialize time slots into dictionaries
+    serialized_time_slots = TimeSlotSerializer(time_slots, many=True).data
+
+    # Optionally, you can serialize and return the time slots along with hour range as a response
+    response_data = {
+        'hour_range': hour_range,
+        'time_slots': serialized_time_slots
+    }
+    return Response(response_data)
+
+@api_view(['GET'])
+def get_time_slots_for_doctor(request, doctor_id, day):
+    try:
+        doctor = Doctor.objects.get(id=doctor_id)
+    except Doctor.DoesNotExist:
+        return Response({"error": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Fetch time slots for the specified day and doctor
+    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day)  # Assuming 'day' field exists
+
+    # Serialize the time slots
+    serialized_time_slots = TimeSlotSerializer(time_slots, many=True).data
+
+    # Construct the response
+    response_data = {
+        "hour_range": day,  # you might convert day from a number to a string if stored as a number
+        "time_slots": serialized_time_slots
+    }
+
+    return Response(response_data)
+    
+    
 
 
 class DoctorSearchAPIView(generics.ListAPIView):
@@ -52,13 +119,6 @@ class DoctorSearchAPIView(generics.ListAPIView):
 
     
 
-class DoctorReservationAPIView(generics.ListAPIView):
-    serializer_class = ReservationSerializer
-
-    def get_queryset(self):
-        doctor_id = self.kwargs['doctor_id']
-        return Reservation.objects.filter(doctorID_id=doctor_id)
-        
 class DoctorList(generics.ListCreateAPIView):
     queryset = Doctor.objects.all()
     serializer_class = doctorSerializer
@@ -180,21 +240,3 @@ class DoctorsBySpecialty(generics.ListAPIView):
         specialty_id = self.kwargs['specialty_id']
         return Doctor.objects.filter(specialty__id=specialty_id)
     
-class DoctorReservationAPIView(generics.ListCreateAPIView):
-    serializer_class = ReservationSerializer
-
-    def get_queryset(self):
-        doctor_id = self.kwargs['doctor_id']
-        return Reservation.objects.filter(doctorID_id=doctor_id).order_by('time_slot')
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            # Check for time slot availability
-            doctor_id = request.data.get('doctorID')
-            time_slot = request.data.get('time_slot')
-            if Reservation.objects.filter(doctorID_id=doctor_id, time_slot=time_slot).exists():
-                return Response({"error": "Time slot is already booked."}, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,37 +1,39 @@
 from django.contrib.auth.models import User
 from rest_framework.serializers import ModelSerializer
-
+import datetime
 from rest_framework import serializers
 
 from .models import (
     Doctor,
     Specialty,
+    TimeSlot,
     managment,
     Patient,
     Pharmacy,
     Pharmacist,
     Refound,
     Reception,
-    Reservation
+    
 )
 
 
+
+class TimeSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeSlot
+        fields = ['start_time', 'end_time', 'day']
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = ['name', 'photo']
 
-    photo = serializers.ImageField(use_url=True)
+        photo = serializers.ImageField(use_url=True)
 
 class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
         fields = ['id', 'title','photo']
 
-class ReservationSerializer(ModelSerializer):
-    class Meta:
-        model = Reservation
-        fields = '__all__'  # Ensure time_slot is included
         
 class doctorSerializer(serializers.ModelSerializer):
     
@@ -81,12 +83,6 @@ class PharmacySerializer(ModelSerializer):
         model = Pharmacy
         fields = '__all__'
 
-
-
-class PharmacySerializer(ModelSerializer):
-    class Meta:
-        model = Pharmacist
-        fields = '__all__'
 
 
 

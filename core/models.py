@@ -1,16 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.base_user import AbstractBaseUser
+from django.db.models import JSONField
 from django.utils import timezone
 import uuid
 from django.core.exceptions import ValidationError
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from project import settings
 #from user_auth.serializers import username
 
 class managment(models.Model):  
     name = models.CharField(max_length=100)
+
+
 
 
 class Patient(models.Model):
@@ -75,7 +78,8 @@ class Doctor(models.Model):
     doctor_price= models.CharField(max_length=15)
     university= models.CharField(max_length=30)
     specialty= models.ForeignKey(Specialty, related_name='doctors' , on_delete=models.CASCADE)
-    pharmacyID = models.ForeignKey(Pharmacy, on_delete=models.CASCADE,default=1)
+    pharmacyID = models.ForeignKey(Pharmacy, on_delete=models.CASCADE,default=1),
+    
 
 
 class Refound(models.Model):
@@ -87,44 +91,62 @@ class Reception(models.Model):
     refound_id=models.ForeignKey(Refound,on_delete=models.CASCADE)
 
 
-class Reservation(models.Model):
-    date = models.CharField(max_length=15)
-    time_slot = models.TimeField()  # Time of the reservation
-    payment_method = models.CharField(max_length=20)
-    payment_amount = models.CharField(max_length=20)
-    patientID = models.ForeignKey('Patient', on_delete=models.CASCADE, default=1)
-    doctorID = models.ForeignKey('Doctor', on_delete=models.CASCADE, default=1)
-    refund_id = models.ForeignKey('Refound', on_delete=models.CASCADE)  
+class TimeSlot(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+    start_time = models.CharField(max_length=5)  # Format: 'HH:MM'
+    end_time = models.CharField(max_length=5)    # Format: 'HH:MM'
+    DAY_OF_WEEK = (
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    )
+    day = models.CharField(max_length=9, choices=DAY_OF_WEEK)
 
     def __str__(self):
-        return f"{self.date} {self.time_slot} {self.payment_method}"
-
-    @classmethod
-    def check_availability(cls, date, time_slot, doctor_id):
-        count_reservations = cls.objects.filter(date=date, doctorID=doctor_id).count()
-        if count_reservations >= 30:
-            return False 
-        existing_reservation = cls.objects.filter(date=date, time_slot=time_slot, doctorID=doctor_id).exists()
-        if existing_reservation:
-            return False
-        return True
-
-    @classmethod
-    def remaining_reservations(cls, date, doctor_id):
-        count_reservations = cls.objects.filter(date=date, doctorID=doctor_id).count()
-        return 30 - count_reservations
-
-    @classmethod
-    def estimated_time_remaining(cls, date, time_slot, doctor_id):
-        remaining_slots = cls.remaining_reservations(date, doctor_id)
-        current_time = cls.objects.filter(date=date, time_slot__lte=time_slot, doctorID=doctor_id).count()
-        estimated_time = (remaining_slots - current_time) * 15  # Assuming each slot is 15 minutes
-        return timedelta(minutes=estimated_time)
-
-    def save(self, *args, **kwargs):
-        if not self.check_availability(self.date, self.time_slot, self.doctorID_id):
-            raise ValidationError("This time slot is either full or already booked.")
-        super().save(*args, **kwargs)
+        return f"{self.day} {self.start_time} - {self.end_time}"
 
 
 
+def generate_time_slots(doctor, start_datetime, end_datetime, slot_duration, buffer_duration):
+    time_slots = []
+
+    # Convert start_datetime and end_datetime to datetime objects
+    start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%S')
+    end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%S')
+
+    current_time = start_datetime
+    slot_duration = timedelta(minutes=slot_duration)
+    buffer_duration = timedelta(minutes=buffer_duration)
+
+    while current_time < end_datetime:
+        slot_start = current_time
+        slot_end = current_time + slot_duration
+        
+        # Convert slot_start and slot_end to strings in the desired format 'HH:MM:SS'
+        slot_start_str = slot_start.strftime('%H:%M:%S')  # Changed format
+        slot_end_str = slot_end.strftime('%H:%M:%S')      # Changed format
+        day_of_week = slot_start.strftime('%A')  # Extract the day of the week
+
+        # Create a TimeSlot object and save it to the database
+        time_slot = TimeSlot(
+            start_time=slot_start_str,
+            end_time=slot_end_str,
+            day=day_of_week,  # Assume the TimeSlot model has a 'day' field
+            doctor=doctor
+        )
+        time_slot.save()
+
+        # Append the time slot object to the list of time slots
+        time_slots.append(time_slot)
+
+        # Move to the next slot accounting for slot duration
+        current_time += slot_duration
+
+        # Add buffer duration to current time
+        current_time += buffer_duration
+
+    return time_slots

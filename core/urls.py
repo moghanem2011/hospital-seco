@@ -11,12 +11,13 @@ urlpatterns = [
     path("patient/<int:pk>", views.patientDetail.as_view()),
     path('refounds/', views.RefoundListCreateAPIView.as_view(), name='refound-list-create'),
     path('receptions/', views.ReceptionListCreateAPIView.as_view(), name='reception-list-create'),
-    path('doctor/<int:doctor_id>/reservations/', views.DoctorReservationAPIView.as_view(), name='doctor-reservations'),
     path('specialties/', views.SpecialtyList.as_view(), name='specialty-list'),
     path('specialties/<int:specialty_id>/doctors/', views.DoctorsBySpecialty.as_view(), name='doctors-by-specialty'),
-    path('doctor/<int:doctor_id>/reservations/', views.DoctorReservationAPIView.as_view(), name='doctor-reservations'),
     path('register/step2/', views.RegisterStepTwoAPIView.as_view(), name='register-step2'),  
-    path('doctors/search/', views.DoctorSearchAPIView.as_view(), name='doctor-search')
+    path('doctors/search/', views.DoctorSearchAPIView.as_view(), name='doctor-search'),
+    path('generate-time-slots/', views.generate_time_slots_api, name='generate_time_slots_api'),
+    path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor, name='doctor_time_slots'),
+    
 ]
 
 
