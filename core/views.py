@@ -1,19 +1,20 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
+from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception, Medicine, Prescription
 from .serializers import (
     
     SpecialtySerializer,
     TimeSlotSerializer,
-    doctorSerializer,
+    DoctorSerializer,
     managmentSerializer,
     PatientSerializer,
     PatientProfileSerializer,
     PharmacySerializer,
     ReceptionSerializer,
     RefoundSerializer,
-   
+   MedicineSerializer,
+   PrescriptionSerializer
 )
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
@@ -134,7 +135,7 @@ def get_patients_for_doctor(request, doctor_id):
 
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
-    serializer_class = doctorSerializer
+    serializer_class = DoctorSerializer
 
     def get_queryset(self):
         print(self.request.query_params)
@@ -161,7 +162,7 @@ class DoctorSearchAPIView(generics.ListAPIView):
 
 class DoctorList(generics.ListCreateAPIView):
     queryset = Doctor.objects.all()
-    serializer_class = doctorSerializer
+    serializer_class = DoctorSerializer
 
     def get_permissions(self):
         permission_classes = []
@@ -173,7 +174,7 @@ class DoctorList(generics.ListCreateAPIView):
 
 class DoctorDetail(generics.RetrieveUpdateDestroyAPIView, generics.CreateAPIView):  # Added generics.CreateAPIView
     queryset = Doctor.objects.all()
-    serializer_class = doctorSerializer
+    serializer_class = DoctorSerializer
     permission_classes = [IsAdminUser | ReciptionPermission]
 
 
@@ -274,9 +275,31 @@ class SpecialtyList(generics.ListAPIView):
     serializer_class = SpecialtySerializer
 
 class DoctorsBySpecialty(generics.ListAPIView):
-    serializer_class = doctorSerializer
+    serializer_class = DoctorSerializer
 
     def get_queryset(self):
         specialty_id = self.kwargs['specialty_id']
         return Doctor.objects.filter(specialty__id=specialty_id)
     
+
+
+class MedicineListCreateView(generics.ListCreateAPIView):
+    queryset = Medicine.objects.all()
+    serializer_class = MedicineSerializer
+
+
+class PrescriptionListCreateView(generics.ListCreateAPIView):
+    queryset = Prescription.objects.all()
+    serializer_class = PrescriptionSerializer
+
+
+class MedicineRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Medicine.objects.all()
+    serializer_class = MedicineSerializer
+    lookup_url_kwarg = "medicine_id"
+
+
+class PrescriptionRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Prescription.objects.all()
+    serializer_class = PrescriptionSerializer
+    lookup_url_kwarg = "prescription_id"
