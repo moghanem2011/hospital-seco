@@ -84,7 +84,7 @@ def get_time_slots_for_doctor(request, doctor_id, day):
 
     # Construct the response
     response_data = {
-        "hour_range": day,
+        "DAY": day,
         "time_slots": serialized_time_slots
     }
 

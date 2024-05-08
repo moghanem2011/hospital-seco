@@ -153,3 +153,4 @@ def generate_time_slots(doctor, start_datetime, end_datetime, slot_duration, buf
         current_time += buffer_duration
 
     return time_slots
+

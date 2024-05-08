@@ -97,3 +97,4 @@ class ReceptionSerializer(ModelSerializer):
     class Meta:
         model = Reception
         fields = '__all__'
+
