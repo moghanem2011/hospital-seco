@@ -31,25 +31,18 @@ class PatientSerializer(serializers.ModelSerializer):
         photo = serializers.ImageField(use_url=True)
 
 class SpecialtySerializer(ModelSerializer):
+    
     class Meta:
         model = Specialty
         fields = ['id', 'title','photo']
 
         
-class DoctorSerializer(serializers.ModelSerializer):
+class doctorSerializer(serializers.ModelSerializer):
+    
+    specialty_name = serializers.CharField(source='specialty.title', read_only=True)
     class Meta:
         model = Doctor
-        fields = [
-            "id",
-            "firstname",
-            "lastname",
-            "age",
-            "address",
-            "photo",
-            "doctor_price",
-            "university",
-            "specialty",
-        ]
+        fields = ['id', 'firstname', 'lastname', 'age', 'address', 'photo', 'doctor_price', 'university','specialty_name', 'specialty']
 
 
 
@@ -117,7 +110,7 @@ class MedicineSerializer(ModelSerializer):
 
 class PrescriptionSerializer(ModelSerializer):
     patient = PatientSerializer()
-    doctor = DoctorSerializer()
+    doctor = doctorSerializer()
     medicines = MedicineSerializer(many=True)
 
     class Meta:

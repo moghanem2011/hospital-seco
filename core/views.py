@@ -6,15 +6,15 @@ from .serializers import (
     
     SpecialtySerializer,
     TimeSlotSerializer,
-    DoctorSerializer,
+    doctorSerializer,
     managmentSerializer,
     PatientSerializer,
     PatientProfileSerializer,
     PharmacySerializer,
     ReceptionSerializer,
     RefoundSerializer,
-   MedicineSerializer,
-   PrescriptionSerializer
+    MedicineSerializer,
+    PrescriptionSerializer
 )
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
@@ -135,7 +135,7 @@ def get_patients_for_doctor(request, doctor_id):
 
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
+    serializer_class = doctorSerializer
 
     def get_queryset(self):
         print(self.request.query_params)
@@ -162,7 +162,7 @@ class DoctorSearchAPIView(generics.ListAPIView):
 
 class DoctorList(generics.ListCreateAPIView):
     queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
+    serializer_class = doctorSerializer
 
     def get_permissions(self):
         permission_classes = []
@@ -174,7 +174,7 @@ class DoctorList(generics.ListCreateAPIView):
 
 class DoctorDetail(generics.RetrieveUpdateDestroyAPIView, generics.CreateAPIView):  # Added generics.CreateAPIView
     queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
+    serializer_class = doctorSerializer
     permission_classes = [IsAdminUser | ReciptionPermission]
 
 
@@ -275,7 +275,7 @@ class SpecialtyList(generics.ListAPIView):
     serializer_class = SpecialtySerializer
 
 class DoctorsBySpecialty(generics.ListAPIView):
-    serializer_class = DoctorSerializer
+    serializer_class = doctorSerializer
 
     def get_queryset(self):
         specialty_id = self.kwargs['specialty_id']
