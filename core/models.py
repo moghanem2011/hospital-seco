@@ -153,3 +153,19 @@ def generate_time_slots(doctor, start_datetime, end_datetime, slot_duration, buf
         current_time += buffer_duration
 
     return time_slots
+
+
+class Medicine(models.Model):
+    name = models.CharField(max_length=75)
+    price = models.DecimalField(max_digits=5, decimal_places=1)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Prescription(models.Model):
+    medicines = models.ManyToManyField(Medicine, verbose_name="")
+    patient = models.ForeignKey("Patient", on_delete=models.CASCADE)
+    doctor = models.ForeignKey(
+        Doctor, default=None, null=True, on_delete=models.PROTECT
+    )
