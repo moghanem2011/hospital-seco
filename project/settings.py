@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
+    'corsheaders'
    
 ]
 
@@ -83,6 +84,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 10  # 10 MB
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -96,6 +98,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.RequestLoggingMiddleware',  # Add your custom middleware here
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 LOGGING = {
     'version': 1,
