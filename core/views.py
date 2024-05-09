@@ -133,6 +133,23 @@ def get_patients_for_doctor(request, doctor_id):
 
     return Response(serialized_patients)
 
+class PatientSearchAPIView(generics.ListAPIView):
+    queryset = Patient.objects.all()
+    serializer_class = PatientSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        firstname = self.request.query_params.get('firstname', None)
+        lastname = self.request.query_params.get('lastname', None)
+
+        if firstname:
+            queryset = queryset.filter(firstname__icontains=firstname)
+        
+        if lastname:
+            queryset = queryset.filter(lastname__icontains=lastname)
+
+        return queryset
+
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
     serializer_class = doctorSerializer

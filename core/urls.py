@@ -63,6 +63,8 @@ urlpatterns = [
         views.PrescriptionRetrieveUpdateDestroyView.as_view(),
         name="prescription-retrieve-update-delete",
     ),
+    path('patients/search/', views.PatientSearchAPIView.as_view(), name='patient_search'),
+
 ]
 
 
