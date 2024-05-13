@@ -13,8 +13,7 @@ from .models import (
     Pharmacist,
     Refound,
     Reception,
-    Medicine,
-    Prescription
+  
 )
 
 
@@ -102,17 +101,3 @@ class ReceptionSerializer(ModelSerializer):
         fields = '__all__'
 
 
-class MedicineSerializer(ModelSerializer):
-    class Meta:
-        model = Medicine
-        fields = "__all__"
-
-
-class PrescriptionSerializer(ModelSerializer):
-    patient = PatientSerializer()
-    doctor = doctorSerializer()
-    medicines = MedicineSerializer(many=True)
-
-    class Meta:
-        model = Prescription
-        fields = "__all__"

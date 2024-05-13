@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception, Medicine, Prescription
+from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
 from .serializers import (
     
     SpecialtySerializer,
@@ -13,9 +13,9 @@ from .serializers import (
     PharmacySerializer,
     ReceptionSerializer,
     RefoundSerializer,
-    MedicineSerializer,
-    PrescriptionSerializer
+   
 )
+from django.contrib.auth import authenticate, login
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from datetime import datetime
@@ -132,23 +132,6 @@ def get_patients_for_doctor(request, doctor_id):
     serialized_patients = PatientSerializer(list(patients), many=True).data
 
     return Response(serialized_patients)
-
-class PatientSearchAPIView(generics.ListAPIView):
-    queryset = Patient.objects.all()
-    serializer_class = PatientSerializer
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        firstname = self.request.query_params.get('firstname', None)
-        lastname = self.request.query_params.get('lastname', None)
-
-        if firstname:
-            queryset = queryset.filter(firstname__icontains=firstname)
-        
-        if lastname:
-            queryset = queryset.filter(lastname__icontains=lastname)
-
-        return queryset
 
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
@@ -298,25 +281,23 @@ class DoctorsBySpecialty(generics.ListAPIView):
         specialty_id = self.kwargs['specialty_id']
         return Doctor.objects.filter(specialty__id=specialty_id)
     
-
-
-class MedicineListCreateView(generics.ListCreateAPIView):
-    queryset = Medicine.objects.all()
-    serializer_class = MedicineSerializer
-
-
-class PrescriptionListCreateView(generics.ListCreateAPIView):
-    queryset = Prescription.objects.all()
-    serializer_class = PrescriptionSerializer
-
-
-class MedicineRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Medicine.objects.all()
-    serializer_class = MedicineSerializer
-    lookup_url_kwarg = "medicine_id"
-
-
-class PrescriptionRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Prescription.objects.all()
-    serializer_class = PrescriptionSerializer
-    lookup_url_kwarg = "prescription_id"
+class LoginAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            try:
+                doctor = Doctor.objects.get(user=user)
+                return Response({
+                    "message": "Login successful.",
+                    "doctor_id": doctor.id
+                }, status=status.HTTP_200_OK)
+            except Doctor.DoesNotExist:
+                return Response({
+                    "message": "Doctor profile not found."
+                }, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            "message": "Invalid credentials, please try again."
+        }, status=status.HTTP_400_BAD_REQUEST)

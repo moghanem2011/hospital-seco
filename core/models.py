@@ -1,3 +1,4 @@
+from queue import Full
 from django.db import models
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.base_user import AbstractBaseUser
@@ -8,6 +9,7 @@ from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 
 from project import settings
+from user_auth.models import HospitalUser
 #from user_auth.serializers import username
 
 class managment(models.Model):  
@@ -70,13 +72,14 @@ class Specialty(models.Model):
         return self.title
     
 class Doctor(models.Model):  
+    user = models.OneToOneField(HospitalUser, on_delete=models.CASCADE, related_name='doctor_profile', null=True)
     firstname = models.CharField(max_length=100)
     lastname = models.CharField(max_length=100)
     age = models.PositiveIntegerField()
     address = models.CharField(max_length=100)
     photo = models.ImageField(upload_to='doctor_photos/', null=True, blank=True)
     doctor_price= models.CharField(max_length=15)
-    university= models.CharField(max_length=30, default='o6u')
+    university= models.CharField(max_length=30)
     specialty= models.ForeignKey(Specialty, related_name='doctors' , on_delete=models.CASCADE)
     pharmacyID = models.ForeignKey(Pharmacy, on_delete=models.CASCADE,default=1),
     
@@ -154,18 +157,3 @@ def generate_time_slots(doctor, start_datetime, end_datetime, slot_duration, buf
 
     return time_slots
 
-
-class Medicine(models.Model):
-    name = models.CharField(max_length=75)
-    price = models.DecimalField(max_digits=5, decimal_places=1)
-
-    def __str__(self) -> str:
-        return self.name
-
-
-class Prescription(models.Model):
-    medicines = models.ManyToManyField(Medicine, verbose_name="")
-    patient = models.ForeignKey("Patient", on_delete=models.CASCADE)
-    doctor = models.ForeignKey(
-        Doctor, default=None, null=True, on_delete=models.PROTECT
-    )
