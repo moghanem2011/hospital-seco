@@ -118,21 +118,21 @@ def book_appointment(request):
         return Response({"error": "Patient not found."}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
-def get_patients_for_doctor(request, doctor_id):
-    try:
-        # Get all booked time slots for the specific doctor
-        time_slots = TimeSlot.objects.filter(doctor_id=doctor_id, is_booked=True)
-    except TimeSlot.DoesNotExist:
-        return Response({"error": "No appointments found for this doctor."}, status=status.HTTP_404_NOT_FOUND)
+def get_time_slots_for_doctor(request, doctor_id, day):
+    doctor = get_object_or_404(Doctor, id=doctor_id)
 
-    # Extract the patient data from the time slots
-    patients = {slot.patient for slot in time_slots if slot.patient is not None}
+    # Fetch all time slots for the specified day and doctor
+    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day)
+
+    # Serialize the time slots
+    serialized_time_slots = TimeSlotSerializer(time_slots, many=True)
     
-    # Serialize the patient data
-    serialized_patients = PatientSerializer(list(patients), many=True).data
-
-    return Response(serialized_patients)
-
+    # Construct the response
+    return Response({
+        "doctor_id": doctor_id,
+        "day": day,
+         "time_slots": serialized_time_slots.data   
+            })
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
     serializer_class = doctorSerializer

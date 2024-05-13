@@ -13,15 +13,24 @@ from .models import (
     Pharmacist,
     Refound,
     Reception,
-  
+    
 )
 
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+    patient_id = serializers.IntegerField(source='patient.id', read_only=True)  # Add this line
+
     class Meta:
         model = TimeSlot
-        fields = ['id','start_time', 'end_time', 'day']
+        fields = ['id', 'start_time', 'end_time', 'day', 'is_booked', 'patient_name', 'patient_id']  # Include patient_id here
+
+    def get_patient_name(self, obj):
+        # This method returns the name of the patient if the slot is booked
+        return obj.patient.firstname + " " + obj.patient.lastname if obj.patient else None
+
+    
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
@@ -30,7 +39,6 @@ class PatientSerializer(serializers.ModelSerializer):
         photo = serializers.ImageField(use_url=True)
 
 class SpecialtySerializer(ModelSerializer):
-    
     class Meta:
         model = Specialty
         fields = ['id', 'title','photo']
@@ -42,7 +50,6 @@ class doctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = ['id', 'firstname', 'lastname', 'age', 'address', 'photo', 'doctor_price', 'university','specialty_name', 'specialty']
-
 
 
 class UserListSerializer(ModelSerializer):
@@ -99,5 +106,4 @@ class ReceptionSerializer(ModelSerializer):
     class Meta:
         model = Reception
         fields = '__all__'
-
 
