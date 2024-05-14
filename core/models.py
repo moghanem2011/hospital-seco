@@ -58,11 +58,12 @@ class Pharmacy(models.Model):
     
     
 class Pharmacist(models.Model):  
+    user = models.OneToOneField(HospitalUser, on_delete=models.CASCADE, related_name='Pharmacist_profile', null=True)
     contact_number = models.CharField(max_length=15)
     name= models.CharField(max_length=20)
     pharmacyID = models.ForeignKey(Pharmacy, on_delete=models.CASCADE,default=1)
     def __str__(self):
-        return f"{self.name} {self.location}"
+        return f"{self.name}"
 
 class Specialty(models.Model):
     title = models.CharField(max_length=150)

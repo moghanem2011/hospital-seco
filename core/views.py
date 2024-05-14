@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
+from .models import  Doctor, MedicalRecord, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -14,6 +14,7 @@ from .serializers import (
     PharmacySerializer,
     ReceptionSerializer,
     RefoundSerializer,
+    PharmacistSerializer,
    
 )
 from django.contrib.auth import authenticate, login
@@ -302,7 +303,28 @@ class LoginAPIView(APIView):
         return Response({
             "message": "Invalid credentials, please try again."
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
+class LoginPHAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            try:
+                pharmacist = Pharmacist.objects.get(user=user)
+                return Response({
+                    "message": "Login successful.",
+                    "pharmacist_id": pharmacist.id
+                }, status=status.HTTP_200_OK)
+            except Doctor.DoesNotExist:
+                return Response({
+                    "message": "Pharmacist profile not found."
+                }, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            "message": "Invalid credentials, please try again."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 class MedicalRecordView(APIView):
     def post(self, request):
         serializer = MedicalRecordSerializer(data=request.data)
@@ -326,3 +348,5 @@ class PatientMedicalRecordsView(generics.ListAPIView):
         """
         patient_id = self.kwargs['patient_id']
         return MedicalRecord.objects.filter(patient__id=patient_id)
+    
+

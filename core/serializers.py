@@ -96,7 +96,10 @@ class PharmacySerializer(ModelSerializer):
         model = Pharmacy
         fields = '__all__'
 
-
+class PharmacistSerializer(ModelSerializer):
+    class Meta:
+        model = Pharmacist
+        fields = '__all__'
 
 
 class RefoundSerializer(ModelSerializer):
