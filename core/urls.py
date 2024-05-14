@@ -20,6 +20,9 @@ urlpatterns = [
     path('book-appointment/', views.book_appointment, name='book_appointment'),
     path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor, name='get_patients_for_doctor'),
     path('login/', views.LoginAPIView.as_view(), name='doctor_login'),
+    path('medical_records/', views.MedicalRecordView.as_view(), name='medical_records'),
+    path('medical_records/<int:id>/', views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
+    path('patients/<int:patient_id>/medical_records/', views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
 
 
 ]

@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
+from .models import  Doctor, MedicalRecord, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception
 from .serializers import (
     
+    MedicalRecordSerializer,
     SpecialtySerializer,
     TimeSlotSerializer,
     doctorSerializer,
@@ -301,3 +302,27 @@ class LoginAPIView(APIView):
         return Response({
             "message": "Invalid credentials, please try again."
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+class MedicalRecordView(APIView):
+    def post(self, request):
+        serializer = MedicalRecordSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class MedicalRecordDetailView(generics.RetrieveAPIView):
+    queryset = MedicalRecord.objects.all()
+    serializer_class = MedicalRecordSerializer
+    lookup_field = 'id'
+
+class PatientMedicalRecordsView(generics.ListAPIView):
+    serializer_class = MedicalRecordSerializer
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the medical records
+        for the currently authenticated patient.
+        """
+        patient_id = self.kwargs['patient_id']
+        return MedicalRecord.objects.filter(patient__id=patient_id)

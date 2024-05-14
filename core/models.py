@@ -157,3 +157,23 @@ def generate_time_slots(doctor, start_datetime, end_datetime, slot_duration, buf
 
     return time_slots
 
+class MedicalRecord(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE , null=True)
+    date = models.DateField(auto_now_add=True)
+    record_name = models.CharField(max_length=255, editable=False, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Set the record_name only if it's a new record and not already set
+        if not self.id and not self.record_name:
+            self.record_name = f"The Record written by {self.doctor.firstname} {self.doctor.lastname}"
+        super(MedicalRecord, self).save(*args, **kwargs)
+
+class Diagnosis(models.Model):
+    medical_record = models.ForeignKey(MedicalRecord, related_name='diagnoses', on_delete=models.CASCADE)
+    description = models.TextField()
+
+class Prescription(models.Model):
+    medical_record = models.ForeignKey(MedicalRecord, related_name='prescriptions', on_delete=models.CASCADE)
+    medication_name = models.CharField(max_length=100)
+    dosage = models.CharField(max_length=100)
