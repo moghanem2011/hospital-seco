@@ -126,11 +126,15 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     prescriptions = PrescriptionSerializer(many=True)
     patient_id = serializers.IntegerField()
     doctor_id = serializers.IntegerField()  # Changed to doctor_id
-
+    doctor_name = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = MedicalRecord
-        fields = ['record_name','id', 'patient_id', 'doctor_id', 'date', 'diagnoses', 'prescriptions']
+        fields = ['record_name','id', 'patient_id', 'doctor_id','doctor_name', 'date', 'diagnoses', 'prescriptions']
         read_only_fields = ['record_name']
+
+    def get_doctor_name(self, obj):
+        return f"{obj.doctor.firstname} {obj.doctor.lastname}" if obj.doctor else None
 
 
     def create(self, validated_data):
