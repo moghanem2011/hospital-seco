@@ -380,7 +380,7 @@ class PaymentViewSet(ModelViewSet):
     lookup_field = 'pk'
     
     @action(detail=True, methods=['GET'])
-    def pay(self, request, pk):
+    def paynow(self, request, pk):
         paycheque = self.get_object()
         amount = paycheque.amount_to_be_paid
         email = 'dummy@dum.dumdum'
@@ -434,7 +434,7 @@ def initiate_payment(host, amount, email, paycheque_id):
     try:
         response = requests.post(url, headers=headers, json=data)
         response_data = response.json()
-        return Response(response_data)
+        return redirect(response_data['data']['link'])
     
     except requests.exceptions.RequestException as err:
         print("the payment didn't go through")
