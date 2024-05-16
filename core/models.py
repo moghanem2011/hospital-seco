@@ -7,7 +7,7 @@ from django.utils import timezone
 import uuid
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 from project import settings
 from user_auth.models import HospitalUser
 #from user_auth.serializers import username
@@ -178,3 +178,102 @@ class Prescription(models.Model):
     medical_record = models.ForeignKey(MedicalRecord, related_name='prescriptions', on_delete=models.CASCADE)
     medication_name = models.CharField(max_length=100)
     dosage = models.CharField(max_length=100)
+    
+class Room(models.Model):
+    """Room data model for registering available rooms.
+
+    Args:
+        models (room_type): this defines what kinda room we are creating or adding.
+        models (available): we will need this later when patients are booking rooms.
+
+    Returns:
+        _room object_: _room object that will be migrated into the database on command_
+    """
+    
+    ROOM_TYPES = [
+        ('general_ward', 'General Ward'),
+        ('semi_private', 'Semi-Private Room'),
+        ('private', 'Private Room'),
+        ('deluxe', 'Deluxe Room'),
+        ('icu', 'Intensive Care Unit (ICU) Room'),
+        ('nicu', 'Neonatal Intensive Care Unit (NICU) Room'),
+        ('maternity', 'Maternity Suite'),
+        ('recovery', 'Recovery Room'),
+        ('isolation', 'Isolation Room'),
+    ]
+    
+    room_type = models.CharField(
+        max_length=20,
+        choices=ROOM_TYPES,
+        default='general_ward',
+    )
+    available = models.BooleanField(default=True)
+    room_capacity = models.PositiveBigIntegerField(validators=[MinValueValidator(1),
+                                                               MaxValueValidator(10)], default=1, blank=True)
+
+    def __str__(self):
+        """for representing rooms in the admin model and the browsable API"""
+        return f"{self.room_type} - {self.id}"
+    
+    
+    
+    
+class RoomBooking(models.Model):
+    """Booking data model for booking empty and available rooms."""
+    BOOKING_STATUS = [
+        ('booked', 'Booked'),
+        ('checked_in', 'Checked In'),
+        ('checked_out', 'Checked Out'),
+        ('cancelled', 'Cancelled'),
+    ]
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    payment = models.OneToOneField('PaymentCheque', on_delete=models.CASCADE, related_name='booking')
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    check_in_date = models.DateField(auto_now_add=True)
+    check_out_date = models.DateField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=BOOKING_STATUS,
+        default='booked',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Booking for {self.patient} in {self.room} from {self.check_in_date} to {self.check_out_date or 'N/A'}"
+
+    # class Meta:
+    #     unique_together = ('room', 'check_in_date', 'check_out_date')
+        
+    
+    # def save(self, *args, **kwargs):
+    #     with models.transaction.atomic():
+    #         # Check for overlapping bookings that would exceed room capacity
+    #         overlapping_bookings = RoomBooking.objects.filter(
+    #             room=self.room,
+    #             status__in=['booked', 'checked_in'],
+    #             check_in_date__lt=self.check_out_date,
+    #             check_out_date__gt=self.check_in_date,
+    #         ).count()
+            
+    #         if overlapping_bookings >= self.room.room_capacity:
+    #             raise ValueError("This room is already at full capacity for the selected dates.")
+            
+    #         super().save(*args, **kwargs)
+    
+    
+class PaymentCheque(models.Model):
+    DEFAULT_PAYMENT_STATUS = 'PENDING'
+    PAYMENT_STATUS = [
+        ('P', 'PENDING'),
+        ('D', 'DECLINED'),
+        ('A', 'ACCEPTED')
+    ]
+    for_patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    amount_to_be_paid = models.CharField(max_length=100) # this is the total amount paid
+    status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default=DEFAULT_PAYMENT_STATUS)
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.for_patient} {self.status} {self.requested_at}'
+    

@@ -197,3 +197,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # LOGOUT_REDIRECT_URL = 'auth:login'
 AUTH_USER_MODEL = 'user_auth.HospitalUser'
+
+FLW_SEC_KEY  ='FLWSECK_TEST-46d3bfde9063185cd302126c6f2cee67-X'
+FLW_PUB_KEY = "FLWPUBK_TEST-03f8bebbfa79a8a38444ae9c8ae0abaa-X"

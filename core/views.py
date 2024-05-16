@@ -1,10 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+import uuid
+import requests
 from .serializers import (
     
     MedicalRecordSerializer,
+    PaymentSerializer,
+    RoomBookingSerializer,
+    RoomSerializer,
     SpecialtySerializer,
     TimeSlotSerializer,
     doctorSerializer,
@@ -21,7 +27,9 @@ from django.contrib.auth import authenticate, login
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from datetime import datetime
+from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics,status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from user_auth.permissions import (
@@ -350,3 +358,82 @@ class PatientMedicalRecordsView(generics.ListAPIView):
         return MedicalRecord.objects.filter(patient__id=patient_id)
     
 
+class RoomViewSet(ModelViewSet):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+    
+    def get_serializer_context(self):
+        return {'request': self.request}
+    
+class RoomBookingsViewSet(ModelViewSet):
+    queryset = RoomBooking.objects.all()
+    serializer_class = RoomBookingSerializer
+    
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+
+class PaymentViewSet(ModelViewSet):
+    queryset = PaymentCheque.objects.all()
+    serializer_class = PaymentSerializer
+    lookup_field = 'pk'
+    
+    @action(detail=True, methods=['GET'])
+    def pay(self, request, pk):
+        paycheque = self.get_object()
+        amount = paycheque.amount_to_be_paid
+        email = 'dummy@dum.dumdum'
+        return initiate_payment(amount, email, paycheque.id)
+    
+    @action(detail=False, methods=["GET"])
+    def confirm_payment(self, request):
+        paycheque_id = request.GET.get("pay_id")
+        paycheque = PaymentCheque.objects.filter(id=paycheque_id).first()
+        paycheque.status = "A"
+        paycheque.save()
+        serializer = PaymentSerializer(paycheque)
+                
+        data = {
+            "msg": "payment was successful",
+            "data": serializer.data
+        }
+        return Response(data)
+    
+    
+#this is for intiating payment
+def initiate_payment(amount, email, paycheque_id):
+    url = "https://api.flutterwave.com/v3/payments"
+    headers = {
+        "Authorization": f"Bearer {settings.FLW_SEC_KEY}"
+        
+    }
+    
+    data = {
+        "tx_ref": str(uuid.uuid4()),
+        "amount": str(amount), 
+        "currency": "USD",
+        "redirect_url": f"http:/127.0.0.1:9000/api/payments/confirm_payment/?pay_id=" + str(paycheque_id),
+        "meta": {
+            "consumer_id": 23,
+            "consumer_mac": "92a3-912ba-1192a"
+        },
+        "customer": {
+            "email": email,
+            "phonenumber": "080****4528",
+            "name": "Dum Dum"
+        },
+        "customizations": {
+            "title": "Pied Piper Payments",
+            "logo": "http://www.piedpiper.com/app/themes/joystick-v27/images/logo.png"
+        }
+    }
+    
+
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response_data = response.json()
+        return Response(response_data)
+    
+    except requests.exceptions.RequestException as err:
+        print("the payment didn't go through")
+        return Response({"error": str(err)}, status=500)
