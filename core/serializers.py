@@ -8,7 +8,10 @@ from .models import (
     Diagnosis,
     Doctor,
     MedicalRecord,
+    PaymentCheque,
     Prescription,
+    Room,
+    RoomBooking,
     Specialty,
     TimeSlot,
     managment,
@@ -166,3 +169,20 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 
         medical_record.save()  # Explicitly call save to ensure the custom logic is executed
         return medical_record
+    
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ['id', 'room_type', 'available']
+        
+class RoomBookingSerializer(serializers.ModelSerializer):
+    check_in_date = serializers.DateField(read_only=True)
+    class Meta:
+        model = RoomBooking
+        fields= ['id', 'patient', 'room', 'check_in_date', 'check_out_date', 'payment']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    requested_at = serializers.DateTimeField(read_only=True)
+    class Meta:
+        model = PaymentCheque
+        fields = ['id', 'for_patient', 'amount_to_be_paid', 'status', 'requested_at']

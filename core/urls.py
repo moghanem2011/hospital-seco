@@ -1,6 +1,14 @@
 from django.urls import path
 from . import views
 
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+
+router.register('rooms', views.RoomViewSet, basename='room')
+router.register('bookings', views.RoomBookingsViewSet, basename='booking')
+router.register('payments', views.PaymentViewSet, basename='payment')
+
 
 urlpatterns = [
     path("doctors/", views.DoctorList.as_view()),
@@ -24,10 +32,8 @@ urlpatterns = [
     path('medical_records/', views.MedicalRecordView.as_view(), name='medical_records'),
     path('medical_records/<int:id>/', views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
     path('patients/<int:patient_id>/medical_records/', views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
-
-
 ]
-
+urlpatterns += router.urls
 
 {
     "username": "doctor2",
