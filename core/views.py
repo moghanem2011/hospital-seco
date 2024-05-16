@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 import requests
+from urllib.parse import urlparse
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -383,10 +384,11 @@ class PaymentViewSet(ModelViewSet):
         paycheque = self.get_object()
         amount = paycheque.amount_to_be_paid
         email = 'dummy@dum.dumdum'
-        return initiate_payment(amount, email, paycheque.id)
+        return initiate_payment(request.get_host(), amount, email, paycheque.id)
     
     @action(detail=False, methods=["GET"])
     def confirm_payment(self, request):
+        status = request.GET.get('status')
         paycheque_id = request.GET.get("pay_id")
         paycheque = PaymentCheque.objects.filter(id=paycheque_id).first()
         paycheque.status = "A"
@@ -394,14 +396,14 @@ class PaymentViewSet(ModelViewSet):
         serializer = PaymentSerializer(paycheque)
                 
         data = {
-            "msg": "payment was successful",
+            "msg": f"Payment is {status}",
             "data": serializer.data
         }
         return Response(data)
     
     
 #this is for intiating payment
-def initiate_payment(amount, email, paycheque_id):
+def initiate_payment(host, amount, email, paycheque_id):
     url = "https://api.flutterwave.com/v3/payments"
     headers = {
         "Authorization": f"Bearer {settings.FLW_SEC_KEY}"
@@ -412,7 +414,7 @@ def initiate_payment(amount, email, paycheque_id):
         "tx_ref": str(uuid.uuid4()),
         "amount": str(amount), 
         "currency": "USD",
-        "redirect_url": f"http:/127.0.0.1:9000/api/payments/confirm_payment/?pay_id=" + str(paycheque_id),
+        "redirect_url": f"http:/{host}/api/payments/confirm_payment/?pay_id=" + str(paycheque_id),
         "meta": {
             "consumer_id": 23,
             "consumer_mac": "92a3-912ba-1192a"
