@@ -4,8 +4,6 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
-import requests
-from urllib.parse import urlparse
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -81,7 +79,7 @@ def generate_time_slots_api(request):
     return Response(response_data)
 
 @api_view(['GET'])
-def get_time_slots_for_doctor(request, doctor_id, day):
+def get_time_slots_for_doctor1(request, doctor_id, day):
     try:
         doctor = Doctor.objects.get(id=doctor_id)
     except Doctor.DoesNotExist:
@@ -144,6 +142,7 @@ def get_time_slots_for_doctor(request, doctor_id, day):
         "day": day,
          "time_slots": serialized_time_slots.data   
             })
+
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
     serializer_class = doctorSerializer

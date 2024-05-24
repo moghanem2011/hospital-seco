@@ -24,18 +24,25 @@ from .models import (
 )
 
 
-
 class TimeSlotSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
-    patient_id = serializers.IntegerField(source='patient.id', read_only=True)  # Add this line
+    patient_id = serializers.IntegerField(source='patient.id', read_only=True)
+    patient_image = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeSlot
-        fields = ['id', 'start_time', 'end_time', 'day', 'is_booked', 'patient_name', 'patient_id']  # Include patient_id here
+        fields = ['id', 'start_time', 'end_time', 'day', 'is_booked', 'patient_name', 'patient_id', 'patient_image']  # Include patient_image here
 
     def get_patient_name(self, obj):
         # This method returns the name of the patient if the slot is booked
         return obj.patient.firstname + " " + obj.patient.lastname if obj.patient else None
+
+    def get_patient_image(self, obj):
+        # This method returns the image URL of the patient if the slot is booked
+        request = self.context.get('request')
+        if obj.patient and obj.patient.photo:
+            return request.build_absolute_uri(obj.patient.photo.url) if request else obj.patient.photo.url
+        return None
 
     
 class PatientSerializer(serializers.ModelSerializer):
