@@ -383,18 +383,18 @@ class PaymentViewSet(ModelViewSet):
     def paynow(self, request, pk):
         paycheque = self.get_object()
         amount = paycheque.amount_to_be_paid
-        email = 'dummy@dum.dumdum'
-        return initiate_payment(request.get_host(), amount, email, paycheque.id)
+        booking = paycheque.booking.id
+        return initiate_payment(request.get_host(), amount, paycheque.id, booking)
     
     @action(detail=False, methods=["GET"])
     def confirm_payment(self, request):
-        status = request.GET.get('status')
+        status = request.query_params.get('status')
         paycheque_id = request.GET.get("pay_id")
         paycheque = PaymentCheque.objects.filter(id=paycheque_id).first()
-        paycheque.status = "A"
-        paycheque.save()
+        if status == 'successful':
+            paycheque.status = "A"
+            paycheque.save()
         serializer = PaymentSerializer(paycheque)
-                
         data = {
             "msg": f"Payment is {status}",
             "data": serializer.data
@@ -403,7 +403,7 @@ class PaymentViewSet(ModelViewSet):
     
     
 #this is for intiating payment
-def initiate_payment(host, amount, email, paycheque_id):
+def initiate_payment(host, amount, paycheque_id, booking):
     url = "https://api.flutterwave.com/v3/payments"
     headers = {
         "Authorization": f"Bearer {settings.FLW_SEC_KEY}"
@@ -420,9 +420,12 @@ def initiate_payment(host, amount, email, paycheque_id):
             "consumer_mac": "92a3-912ba-1192a"
         },
         "customer": {
-            "email": email,
+            "email": "test@test.test",
             "phonenumber": "080****4528",
             "name": "Dum Dum"
+        },
+        "booking": {
+            "id": booking
         },
         "customizations": {
             "title": "Pied Piper Payments",

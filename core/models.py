@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator, MaxValueValidator
 from project import settings
 from user_auth.models import HospitalUser
+from django.db import transaction
+
 #from user_auth.serializers import username
 
 class managment(models.Model):  
@@ -247,7 +249,7 @@ class RoomBooking(models.Model):
         
     
     # def save(self, *args, **kwargs):
-    #     with models.transaction.atomic():
+    #     with transaction.atomic():
     #         # Check for overlapping bookings that would exceed room capacity
     #         overlapping_bookings = RoomBooking.objects.filter(
     #             room=self.room,
@@ -269,11 +271,10 @@ class PaymentCheque(models.Model):
         ('D', 'DECLINED'),
         ('A', 'ACCEPTED')
     ]
-    for_patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     amount_to_be_paid = models.CharField(max_length=100) # this is the total amount paid
     status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default=DEFAULT_PAYMENT_STATUS)
     requested_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.for_patient} {self.status} {self.requested_at}'
+        return f'{self.status} {self.requested_at}'
     

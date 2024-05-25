@@ -181,8 +181,15 @@ class RoomBookingSerializer(serializers.ModelSerializer):
         model = RoomBooking
         fields= ['id', 'patient', 'room', 'check_in_date', 'check_out_date', 'payment']
 
+    # def create(self, validated_data):
+    #     payment_pk = validated_data['payment']
+    #     print(payment_pk)
+    #     payment = PaymentCheque.objects.get(pk=payment_pk)
+    #     validated_data['payment'] = payment
+    #     return RoomBooking.objects.create(**validated_data)
+    
 class PaymentSerializer(serializers.ModelSerializer):
     requested_at = serializers.DateTimeField(read_only=True)
     class Meta:
         model = PaymentCheque
-        fields = ['id', 'for_patient', 'amount_to_be_paid', 'status', 'requested_at']
+        fields = ['id', 'amount_to_be_paid', 'status', 'requested_at']
