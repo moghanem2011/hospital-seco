@@ -38,7 +38,6 @@ uritemplate = "==4.1.1"
 webencodings = "==0.5.1"
 whitenoise = "==6.6.0"
 requests = "*"
-rave-python = "*"
 
 [dev-packages]
 

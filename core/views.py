@@ -1,16 +1,10 @@
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 import requests
-from Crypto.Cipher import DES3
-from Crypto.Util.Padding import pad
-import base64
 import json
-from rave_python import Rave, RaveExceptions
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -468,7 +462,7 @@ class PaymentViewSet(ModelViewSet):
                 paychequ = PaymentCheque.objects.get(pk=paycheque_id)
                 paychequ.status = "A"
                 paychequ.save()
-                return Response({f"message": "Payment has been received successfully for booking no. {booking_id}",
+                return Response({"message": f"Payment has been received successfully for booking no. {booking_id}",
                                  "paycheque_status": "Accepted"})
             else:
                 return Response({"Failed": "Payment was not successful."})
