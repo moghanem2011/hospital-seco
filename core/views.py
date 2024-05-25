@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.conf import settings
 from rest_framework.views import APIView
@@ -5,7 +6,11 @@ from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 import requests
-from urllib.parse import urlparse
+from Crypto.Cipher import DES3
+from Crypto.Util.Padding import pad
+import base64
+import json
+from rave_python import Rave, RaveExceptions
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -379,66 +384,93 @@ class PaymentViewSet(ModelViewSet):
     serializer_class = PaymentSerializer
     lookup_field = 'pk'
     
+    def get_paypal_token(self, request):
+        token_url = 'https://api.sandbox.paypal.com/v1/oauth2/token'
+        headers = {
+            'Accept': 'application/json',
+            'Accept-Language': 'en_US',
+        }
+        data = {'grant_type': 'client_credentials'}
+        auth = (settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET)
+        response = requests.post(token_url, headers=headers, data=data, auth=auth)
+        response.raise_for_status()
+        return response.json()['access_token']
+    
     @action(detail=True, methods=['GET'])
-    def paynow(self, request, pk):
+    def paynow(self, request, *args, **kwargs):
+        paypal_token = self.get_paypal_token(request)
         paycheque = self.get_object()
-        amount = paycheque.amount_to_be_paid
-        booking = paycheque.booking.id
-        return initiate_payment(request.get_host(), amount, paycheque.id, booking)
-    
-    @action(detail=False, methods=["GET"])
-    def confirm_payment(self, request):
-        status = request.query_params.get('status')
-        paycheque_id = request.GET.get("pay_id")
-        paycheque = PaymentCheque.objects.filter(id=paycheque_id).first()
-        if status == 'successful':
-            paycheque.status = "A"
-            paycheque.save()
-        serializer = PaymentSerializer(paycheque)
-        data = {
-            "msg": f"Payment is {status}",
-            "data": serializer.data
-        }
-        return Response(data)
-    
-    
-#this is for intiating payment
-def initiate_payment(host, amount, paycheque_id, booking):
-    url = "https://api.flutterwave.com/v3/payments"
-    headers = {
-        "Authorization": f"Bearer {settings.FLW_SEC_KEY}"
+        patient_id = request.data.get('patient_id')
+        booking_id = request.data.get('booking_id')
+        success_url = f"http://{request.get_host()}/api/payments/state/?status=successful&paycheque_id={paycheque.id}&booking_id={booking_id}/"
+        failed_url = f"http://{request.get_host()}/api/payments/state/?status=failed&paycheque_id={paycheque.id}&booking_id={booking_id}/"
         
-    }
-    
-    data = {
-        "tx_ref": str(uuid.uuid4()),
-        "amount": str(amount), 
-        "currency": "USD",
-        "redirect_url": f"http:/{host}/api/payments/confirm_payment/?pay_id=" + str(paycheque_id),
-        "meta": {
-            "consumer_id": 23,
-            "consumer_mac": "92a3-912ba-1192a"
-        },
-        "customer": {
-            "email": "test@test.test",
-            "phonenumber": "080****4528",
-            "name": "Dum Dum"
-        },
-        "booking": {
-            "id": booking
-        },
-        "customizations": {
-            "title": "Pied Piper Payments",
-            "logo": "http://www.piedpiper.com/app/themes/joystick-v27/images/logo.png"
+        data = {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": str(uuid.uuid4()),
+                "amount": {
+                    "currency_code": "USD",
+                    "value": paycheque.amount_to_be_paid
+                },
+                "paycheque": paycheque.id,
+                "description": f"Payment for booking {booking_id} by patient {patient_id}"
+            }],
+            "application_context": {
+                "shipping_preference": "NO_SHIPPING",
+                "return_url": success_url,
+                "cancel_url": failed_url
+            }
         }
-    }
-    
 
-    try:
-        response = requests.post(url, headers=headers, json=data)
-        response_data = response.json()
-        return redirect(response_data['data']['link'])
-    
-    except requests.exceptions.RequestException as err:
-        print("the payment didn't go through")
-        return Response({"error": str(err)}, status=500)
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {paypal_token}',
+        }
+        
+        response = requests.post('https://api.sandbox.paypal.com/v2/checkout/orders', headers=headers, data=json.dumps(data))
+        if response.status_code == 201:
+            payment = response.json()
+            payment_id = payment['id']
+
+            # Extract approval URL
+            approval_url = next(link['href'] for link in payment['links'] if link['rel'] == 'approve')
+            
+            # Redirect the client to PayPal approval URL
+            # In a web application, you would return a redirect response to the client
+            # For example, in Django:
+            return Response({"payment_url": approval_url})
+        else:
+            return Response({"error": "Something isn't right."})
+        
+
+    @action(detail=False, methods=['GET'])
+    def state(self, request):
+        token = request.GET.get('token')
+        payer_id = request.GET.get('PayerID')
+        
+        if not token or not payer_id:
+            return Response({'error': 'Missing token or PayerID'}, status=400)
+        
+        access_token = self.get_paypal_token(request)  # Implement this function to obtain access token
+        
+        capture_url = f'https://api.sandbox.paypal.com/v2/checkout/orders/{token}/capture'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}',
+        }
+        response = requests.post(capture_url, headers=headers)
+        
+        if response.status_code == 201:
+            if request.query_params.get('status') == 'successful':
+                paycheque_id = request.query_params.get('paycheque_id')
+                booking_id = request.query_params.get('booking_id')
+                paychequ = PaymentCheque.objects.get(pk=paycheque_id)
+                paychequ.status = "A"
+                paychequ.save()
+                return Response({f"message": "Payment has been received successfully for booking no. {booking_id}",
+                                 "paycheque_status": "Accepted"})
+            else:
+                return Response({"Failed": "Payment was not successful."})
+        else:
+            return Response({'error': response.text}, status=response.status_code)
