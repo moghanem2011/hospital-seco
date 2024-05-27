@@ -1,13 +1,14 @@
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 
 import json
 from .serializers import (
     
     MedicalRecordSerializer,
+    MedicationSerializer,
     PaymentSerializer,
     RoomBookingSerializer,
     RoomSerializer,
@@ -38,6 +39,10 @@ from user_auth.permissions import (
     PharmacyPermission
 )
 
+
+class MedicationListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Medication.objects.all()
+    serializer_class = MedicationSerializer
 
 @api_view(['POST'])
 def generate_time_slots_api(request):

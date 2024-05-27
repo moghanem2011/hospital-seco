@@ -8,6 +8,7 @@ from .models import (
     Diagnosis,
     Doctor,
     MedicalRecord,
+    Medication,
     PaymentCheque,
     Prescription,
     Room,
@@ -22,6 +23,14 @@ from .models import (
     Reception,
     
 )
+
+from rest_framework import serializers
+from .models import Medication
+
+class MedicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medication
+        fields = '__all__'
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):

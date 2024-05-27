@@ -32,6 +32,8 @@ urlpatterns = [
     path('medical_records/', views.MedicalRecordView.as_view(), name='medical_records'),
     path('medical_records/<int:id>/', views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
     path('patients/<int:patient_id>/medical_records/', views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
+    path('medications/', views.MedicationListCreateAPIView.as_view(), name='medication-list-create'),
+
 ]
 urlpatterns += router.urls
 
