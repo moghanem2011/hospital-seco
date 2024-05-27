@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
-import requests
+
 import json
 from .serializers import (
     
@@ -128,11 +128,11 @@ def book_appointment(request):
         return Response({"error": "Patient not found."}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
-def get_time_slots_for_doctor(request, doctor_id, day):
+def Patientlist_for_doctor(request, doctor_id, day):
     doctor = get_object_or_404(Doctor, id=doctor_id)
 
     # Fetch all time slots for the specified day and doctor
-    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day)
+    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day , is_booked=True)
 
     # Serialize the time slots
     serialized_time_slots = TimeSlotSerializer(time_slots, many=True)
