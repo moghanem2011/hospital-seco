@@ -44,6 +44,10 @@ class MedicationListCreateAPIView(generics.ListCreateAPIView):
     queryset = Medication.objects.all()
     serializer_class = MedicationSerializer
 
+class MedicationListAPIView(generics.ListAPIView):
+    queryset = Medication.objects.all()
+    serializer_class = MedicationSerializer
+    
 @api_view(['POST'])
 def generate_time_slots_api(request):
     doctor_id = request.data.get('doctor_id')
