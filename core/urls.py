@@ -34,8 +34,9 @@ urlpatterns = [
     path('patients/<int:patient_id>/medical_records/', views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
     path('medications/', views.MedicationListCreateAPIView.as_view(), name='medication-list-create'),
     path('medications/list/', views.MedicationListAPIView.as_view(), name='medication-list'),
-
-
+    path('patients/<int:patient_id>/unfilled-medical-records/', views.UnfilledMedicalRecordsView.as_view(), name='unfilled-medical-records'),
+    path('patients/unfilled-prescriptions/', views.PatientsWithUnfilledPrescriptionsView.as_view(), name='patients-with-unfilled-prescriptions'),
+    path('medications/search/', views.MedicationSearchView.as_view(), name='medication-search'),
 ]
 urlpatterns += router.urls
 

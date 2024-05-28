@@ -180,6 +180,8 @@ class Prescription(models.Model):
     medical_record = models.ForeignKey(MedicalRecord, related_name='prescriptions', on_delete=models.CASCADE)
     medication_name = models.CharField(max_length=100)
     dosage = models.CharField(max_length=100)
+    is_filled = models.BooleanField(default=False)
+
     
 class Room(models.Model):
     """Room data model for registering available rooms.

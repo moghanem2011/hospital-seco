@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 
 import json
@@ -10,6 +10,7 @@ from .serializers import (
     MedicalRecordSerializer,
     MedicationSerializer,
     PaymentSerializer,
+    PrescriptionSerializer,
     RoomBookingSerializer,
     RoomSerializer,
     SpecialtySerializer,
@@ -478,3 +479,49 @@ class PaymentViewSet(ModelViewSet):
                 return Response({"Failed": "Payment was not successful."})
         else:
             return Response({'error': response.text}, status=response.status_code)
+        
+class UnfilledMedicalRecordsView(APIView):
+    def get(self, request, patient_id):
+        # Get all medical records for the specified patient
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        
+        # Filter those medical records that have at least one unfilled prescription
+        unfilled_medical_records = medical_records.filter(
+            prescriptions__is_filled=False
+        ).distinct()
+        
+        # Serialize the medical record data
+        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
+        return Response(serializer.data)
+
+class PatientsWithUnfilledPrescriptionsView(APIView):
+    def get(self, request):
+        # Find all medical records that are linked to at least one unfilled prescription
+        medical_records_with_unfilled = MedicalRecord.objects.filter(
+            prescriptions__is_filled=False
+        ).distinct()
+        
+        # Extract patients from these medical records
+        patients = {record.patient for record in medical_records_with_unfilled}
+        
+        # Serialize the patient data
+        serializer = PatientSerializer(list(patients), many=True)
+        return Response(serializer.data)
+    
+class MedicationSearchView(APIView):
+    def get(self, request):
+        # Get the query from request query parameters
+        query = request.query_params.get('query', None)
+
+        # Filter medications based on the query
+        if query is not None:
+            medications = Medication.objects.filter(
+                Q(name__icontains=query) | 
+                Q(description__icontains=query)
+            )
+        else:
+            medications = Medication.objects.all()
+
+        # Serialize the medication data
+        serializer = MedicationSerializer(medications, many=True)
+        return Response(serializer.data)

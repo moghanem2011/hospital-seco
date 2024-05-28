@@ -141,7 +141,7 @@ class DiagnosisSerializer(serializers.ModelSerializer):
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
-        fields = ['medication_name', 'dosage']
+        fields = ['medication_name', 'dosage', 'id' , 'is_filled']
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     diagnoses = DiagnosisSerializer(many=True)
