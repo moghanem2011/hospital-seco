@@ -479,7 +479,20 @@ class PaymentViewSet(ModelViewSet):
                 return Response({"Failed": "Payment was not successful."})
         else:
             return Response({'error': response.text}, status=response.status_code)
-        
+
+class FillPrescriptionView(APIView):
+    def patch(self, request, pk):
+        try:
+            prescription = Prescription.objects.get(pk=pk)
+        except Prescription.DoesNotExist:
+            return Response({'error': 'Prescription not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        prescription.is_filled = True
+        prescription.save()
+
+        serializer = PrescriptionSerializer(prescription)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+           
 class UnfilledMedicalRecordsView(APIView):
     def get(self, request, patient_id):
         # Get all medical records for the specified patient
