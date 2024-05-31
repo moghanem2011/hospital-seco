@@ -145,7 +145,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     diagnoses = DiagnosisSerializer(many=True)
-    prescriptions = PrescriptionSerializer(many=True)
+    prescriptions = serializers.SerializerMethodField()
     patient_id = serializers.IntegerField()
     doctor_id = serializers.IntegerField()  # Changed to doctor_id
     doctor_name = serializers.SerializerMethodField(read_only=True)
@@ -185,6 +185,10 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 
         medical_record.save()  # Explicitly call save to ensure the custom logic is executed
         return medical_record
+    def get_prescriptions(self, obj):
+        # Filtering out prescriptions where is_filled is True
+        unfilled_prescriptions = obj.prescriptions.filter(is_filled=False)
+        return PrescriptionSerializer(unfilled_prescriptions, many=True).data
     
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:

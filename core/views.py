@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
-
+from django.db.models import Count, Q
 import json
 from .serializers import (
     
@@ -479,7 +479,26 @@ class PaymentViewSet(ModelViewSet):
                 return Response({"Failed": "Payment was not successful."})
         else:
             return Response({'error': response.text}, status=response.status_code)
+        
+class UnfilledMedicalRecordsView(APIView):
+    def get(self, request, patient_id):
+        # Get all medical records for the specified patient
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
 
+        # Filter those medical records that only have unfilled prescriptions
+        unfilled_medical_records = medical_records.annotate(
+            filled_prescription_count=Count('prescriptions', filter=Q(prescriptions__is_filled=True)),
+            total_prescription_count=Count('prescriptions')
+        ).filter(filled_prescription_count=0, total_prescription_count__gt=0).distinct()
+
+        # Serialize the medical record data
+        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
+        return Response(serializer.data)
+    def get(self, request, patient_id):
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        serializer = MedicalRecordSerializer(medical_records, many=True)
+        return Response(serializer.data)
+        
 class FillPrescriptionView(APIView):
     def patch(self, request, pk):
         try:
@@ -492,21 +511,7 @@ class FillPrescriptionView(APIView):
 
         serializer = PrescriptionSerializer(prescription)
         return Response(serializer.data, status=status.HTTP_200_OK)
-           
-class UnfilledMedicalRecordsView(APIView):
-    def get(self, request, patient_id):
-        # Get all medical records for the specified patient
-        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
-        
-        # Filter those medical records that have at least one unfilled prescription
-        unfilled_medical_records = medical_records.filter(
-            prescriptions__is_filled=False
-        ).distinct()
-        
-        # Serialize the medical record data
-        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
-        return Response(serializer.data)
-
+   
 class PatientsWithUnfilledPrescriptionsView(APIView):
     def get(self, request):
         # Find all medical records that are linked to at least one unfilled prescription
