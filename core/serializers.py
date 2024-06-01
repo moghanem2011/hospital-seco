@@ -142,11 +142,19 @@ class DiagnosisSerializer(serializers.ModelSerializer):
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
-        fields = ['medication_name', 'dosage', 'id' , 'is_filled']
+        fields = ['id', 'medication_name', 'dosage', 'is_filled']
+
+    def to_representation(self, instance):
+        # Check if the 'filter_filled' context is True and the prescription is filled
+        if self.context.get('filter_filled', False) and instance.is_filled:
+            return None  # Skip filled prescriptions if in pharmacy context
+        return super().to_representation(instance)
+
+    
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     diagnoses = DiagnosisSerializer(many=True)
-    prescriptions = serializers.SerializerMethodField()
+    prescriptions = PrescriptionSerializer(many=True)
     patient_id = serializers.IntegerField()
     doctor_id = serializers.IntegerField()  # Changed to doctor_id
     doctor_name = serializers.SerializerMethodField(read_only=True)
@@ -187,9 +195,15 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         medical_record.save()  # Explicitly call save to ensure the custom logic is executed
         return medical_record
     def get_prescriptions(self, obj):
-        # Filtering out prescriptions where is_filled is True
-        unfilled_prescriptions = obj.prescriptions.filter(is_filled=False)
-        return PrescriptionSerializer(unfilled_prescriptions, many=True).data
+        # Pass the context to the PrescriptionSerializer
+        serializer = PrescriptionSerializer(obj.prescriptions.all(), many=True, context=self.context)
+        return serializer.data
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Filter out the medical record if it has no non-null prescriptions
+        if not any(ret['prescriptions']):
+            return None
+        return ret
     
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:

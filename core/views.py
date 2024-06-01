@@ -185,7 +185,15 @@ class DoctorSearchAPIView(generics.ListAPIView):
 
     
 
-    
+class PharmacyView(APIView):
+    def get(self, request, patient_id):
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        # Set the context to filter filled prescriptions
+        context = {'filter_filled': True}
+        serializer = MedicalRecordSerializer(medical_records, many=True, context=context)
+        data = [record for record in serializer.data if record is not None]  # Filter out None records
+        return Response(data)
+
 
 class DoctorList(generics.ListCreateAPIView):
     queryset = Doctor.objects.all()
@@ -573,6 +581,12 @@ class UnfilledMedicalRecordsView(APIView):
         medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
         serializer = MedicalRecordSerializer(medical_records, many=True)
         return Response(serializer.data)
+
+                        return Response({'error': 'PaymentCheque not found'}, status=404)
+            return Response(payment_info, status=201)
+        else:
+            # Handle other status codes and errors
+            return Response({"message": response_data}, status=response.status_code)
         
 class FillPrescriptionView(APIView):
     def patch(self, request, pk):
