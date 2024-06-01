@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 from rest_framework.routers import DefaultRouter
@@ -7,8 +7,8 @@ router = DefaultRouter()
 
 router.register('rooms', views.RoomViewSet, basename='room')
 router.register('bookings', views.RoomBookingsViewSet, basename='booking')
+router.register('paymentcheques', views.PaymentChequeViewSet, basename='paymentcheques')
 router.register('payments', views.PaymentViewSet, basename='payment')
-
 
 urlpatterns = [
     path("doctors/", views.DoctorList.as_view()),
@@ -38,8 +38,9 @@ urlpatterns = [
     path('prescriptions/<int:pk>/fill/', views.FillPrescriptionView.as_view(), name='fill-prescription'),
     path('patients/unfilled-prescriptions/', views.PatientsWithUnfilledPrescriptionsView.as_view(), name='patients-with-unfilled-prescriptions'),
     path('medications/search/', views.MedicationSearchView.as_view(), name='medication-search'),
+    
+    path('', include(router.urls))
 ]
-urlpatterns += router.urls
 
 {
     "username": "doctor2",
