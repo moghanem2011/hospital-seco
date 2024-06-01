@@ -5,7 +5,7 @@ from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescript
 import uuid
 from django.db.models import Count, Q
 import json
-import requests
+
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -180,7 +180,15 @@ class DoctorSearchAPIView(generics.ListAPIView):
 
     
 
-    
+class PharmacyView(APIView):
+    def get(self, request, patient_id):
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        # Set the context to filter filled prescriptions
+        context = {'filter_filled': True}
+        serializer = MedicalRecordSerializer(medical_records, many=True, context=context)
+        data = [record for record in serializer.data if record is not None]  # Filter out None records
+        return Response(data)
+
 
 class DoctorList(generics.ListCreateAPIView):
     queryset = Doctor.objects.all()
@@ -491,24 +499,6 @@ class PaymentViewSet(ModelViewSet):
             # Handle other status codes and errors
             return Response({"message": response_data}, status=response.status_code)
                    
-class UnfilledMedicalRecordsView(APIView):
-    def get(self, request, patient_id):
-        # Get all medical records for the specified patient
-        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
-
-        # Filter those medical records that only have unfilled prescriptions
-        unfilled_medical_records = medical_records.annotate(
-            filled_prescription_count=Count('prescriptions', filter=Q(prescriptions__is_filled=True)),
-            total_prescription_count=Count('prescriptions')
-        ).filter(filled_prescription_count=0, total_prescription_count__gt=0).distinct()
-
-        # Serialize the medical record data
-        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
-        return Response(serializer.data)
-    def get(self, request, patient_id):
-        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
-        serializer = MedicalRecordSerializer(medical_records, many=True)
-        return Response(serializer.data)
         
 class FillPrescriptionView(APIView):
     def patch(self, request, pk):
