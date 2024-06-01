@@ -194,7 +194,7 @@ class Room(models.Model):
         _room object_: _room object that will be migrated into the database on command_
     """
     
-    ROOM_TYPES = [
+    _ROOM_TYPES = [
         ('general_ward', 'General Ward'),
         ('semi_private', 'Semi-Private Room'),
         ('private', 'Private Room'),
@@ -208,7 +208,7 @@ class Room(models.Model):
     
     room_type = models.CharField(
         max_length=20,
-        choices=ROOM_TYPES,
+        choices=_ROOM_TYPES,
         default='general_ward',
     )
     available = models.BooleanField(default=True)
@@ -230,6 +230,7 @@ class RoomBooking(models.Model):
         ('checked_out', 'Checked Out'),
         ('cancelled', 'Cancelled'),
     ]
+    paycheque = models.ForeignKey('PaymentCheque', on_delete=models.CASCADE, blank=True, null=True)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     check_in_date = models.DateField(auto_now_add=True)
@@ -268,16 +269,31 @@ class RoomBooking(models.Model):
 class PaymentCheque(models.Model):
     DEFAULT_PAYMENT_STATUS = 'PENDING'
     PAYMENT_STATUS = [
-        ('P', 'PENDING'),
-        ('D', 'DECLINED'),
-        ('A', 'ACCEPTED')
+        ('pending', 'PENDING'),
+        ('declined', 'DECLINED'),
+        ('completed', 'COMPLETED')
     ]
     amount_to_be_paid = models.CharField(max_length=100) # this is the total amount paid
     status = models.CharField(max_length=100, choices=PAYMENT_STATUS, default=DEFAULT_PAYMENT_STATUS)
     requested_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.status} {self.requested_at}'
+        return f'PaymentChqeue is {self.status} and requested at {self.requested_at} for {self.roombooking or 'N/A'}.'
+    
+class Payment(models.Model):
+    payment_id = models.CharField(max_length=255)
+    paycheque = models.OneToOneField(PaymentCheque, on_delete=models.PROTECT)
+    payment_method = models.CharField(max_length=100, default="PayPal")
+    status = models.CharField(max_length=255)
+    payer_name = models.CharField(max_length=255)
+    payer_email = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=6, decimal_places=2, validators=[MinValueValidator(1)])
+    currency = models.CharField(max_length=255, default="USD")
+    transaction_id = models.CharField(max_length=255)
+    payment_time = models.DateField()
+    
+    def __str__(self):
+        return f"Payment for paycheque {self.paycheque} by {self.payer_name} {self.payer_email}."
     
 
 class Medication(models.Model):

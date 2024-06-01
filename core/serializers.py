@@ -9,6 +9,7 @@ from .models import (
     Doctor,
     MedicalRecord,
     Medication,
+    Payment,
     PaymentCheque,
     Prescription,
     Room,
@@ -211,19 +212,24 @@ class RoomSerializer(serializers.ModelSerializer):
         
 class RoomBookingSerializer(serializers.ModelSerializer):
     check_in_date = serializers.DateField(read_only=True)
+    check_out_date = serializers.DateField(required=False)
+    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all())
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all())
+    paycheque = serializers.PrimaryKeyRelatedField(queryset=PaymentCheque.objects.all(), required=False)
+
     class Meta:
         model = RoomBooking
-        fields= ['id', 'patient', 'room', 'check_in_date', 'check_out_date', 'payment']
+        fields= ['id', 'patient', 'room', 'paycheque', 'check_in_date', 'check_out_date']
 
-    # def create(self, validated_data):
-    #     payment_pk = validated_data['payment']
-    #     print(payment_pk)
-    #     payment = PaymentCheque.objects.get(pk=payment_pk)
-    #     validated_data['payment'] = payment
-    #     return RoomBooking.objects.create(**validated_data)
-    
-class PaymentSerializer(serializers.ModelSerializer):
+class PaymentChequeSerializer(serializers.ModelSerializer):
     requested_at = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = PaymentCheque
         fields = ['id', 'amount_to_be_paid', 'status', 'requested_at']
+        
+class PaymentSerializer(serializers.ModelSerializer):    
+    class Meta:
+        model = Payment
+        fields = ['id', 'payment_id', 'paycheque', 'payment_method', 'status',
+                  'payer_name', 'payer_email', 'amount', 'currency', 'transaction_id', 'payment_time']

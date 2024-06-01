@@ -1,15 +1,19 @@
 from django.conf import settings
 from rest_framework.views import APIView
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+from .models import  Doctor, MedicalRecord, Medication, Payment, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 from django.db.models import Count, Q
 import json
-
+import requests
+from django.utils import timezone
+from django.db.models import Q
 from .serializers import (
     
     MedicalRecordSerializer,
     MedicationSerializer,
+    PaymentChequeSerializer,
     PaymentSerializer,
     PrescriptionSerializer,
     RoomBookingSerializer,
@@ -31,6 +35,7 @@ from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from datetime import datetime
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework import generics,status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -391,11 +396,57 @@ class RoomBookingsViewSet(ModelViewSet):
     
     def get_serializer_context(self):
         return {'request': self.request}
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        room = serializer.validated_data['room']
+        serializer.validated_data['check_in_date'] = timezone.now().date()
+        check_in_date = serializer.validated_data['check_in_date']
+        try:
+            check_out_date = serializer.validated_data['check_out_date']
+        except KeyError:
+            check_out_date = None
+        
+        # Check room availability
+        if not self.is_room_available(room, check_in_date, check_out_date):
+            return Response({"error": "Room is not available or not available for the selected dates."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def is_room_available(self, room, check_in_date, check_out_date):
+        if not room.available:
+            return False
+        
+        null_checkouts = RoomBooking.objects.filter(check_out_date__isnull=True)
+        not_null_checkouts = RoomBooking.objects.filter(check_out_date__isnull=False)
+       
+        null_checkout_overlapping_bookings = null_checkouts.filter(
+                Q(room=room) &
+                Q(status__in=['booked', 'checked_in'])
+            ).count()
+        
+        if check_out_date is not None:
+            non_nullable_overlapping_bookings = not_null_checkouts.filter(
+                    Q(check_out_date__gt=check_in_date) &
+                    Q(check_in_date__lt=check_out_date),
+                    room=room,
+                    status__in=['booked', 'checked_in']
+                ).count()
+        else:
+                non_nullable_overlapping_bookings = not_null_checkouts.filter(
+                    Q(check_out_date__gt=check_in_date),
+                    room=room,
+                    status__in=['booked', 'checked_in']
+                ).count()
+        return (null_checkout_overlapping_bookings + non_nullable_overlapping_bookings) < room.room_capacity
 
-
-class PaymentViewSet(ModelViewSet):
+class PaymentChequeViewSet(ModelViewSet):
     queryset = PaymentCheque.objects.all()
-    serializer_class = PaymentSerializer
+    serializer_class = PaymentChequeSerializer
     lookup_field = 'pk'
     
     def get_paypal_token(self, request):
@@ -414,8 +465,8 @@ class PaymentViewSet(ModelViewSet):
     def paynow(self, request, *args, **kwargs):
         paypal_token = self.get_paypal_token(request)
         paycheque = self.get_object()
-        success_url = f"http://{request.get_host()}/api/payments/state/?status=successful&paycheque_id={paycheque.id}"
-        failed_url = f"http://{request.get_host()}/api/payments/state/?status=failed&paycheque_id={paycheque.id}"
+        success_url = f"http://{request.get_host()}/api/paymentcheques/state/?status=successful&paycheque_id={paycheque.id}"
+        failed_url = f"http://{request.get_host()}/api/paymentcheques/state/?status=failed&paycheque_id={paycheque.id}"
         
         data = {
             "intent": "CAPTURE",
@@ -425,7 +476,6 @@ class PaymentViewSet(ModelViewSet):
                     "currency_code": "USD",
                     "value": paycheque.amount_to_be_paid
                 },
-                "paycheque": paycheque.id,
             }],
             "application_context": {
                 "shipping_preference": "NO_SHIPPING",
@@ -448,9 +498,9 @@ class PaymentViewSet(ModelViewSet):
             # Redirect the client to PayPal approval URL
             # In a web application, you would return a redirect response to the client
             # For example, in Django:
-            return Response({"payment_url": approval_url})
+            return Response({"payment_url": approval_url}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "Something isn't right."})
+            return Response({"error": "Something isn't right."}, status=status.HTTP_400_BAD_REQUEST)
         
 
     @action(detail=False, methods=['GET'])
@@ -481,7 +531,7 @@ class PaymentViewSet(ModelViewSet):
                 'amount': response_data['purchase_units'][0]['payments']['captures'][0]['amount']['value'],
                 'currency': response_data['purchase_units'][0]['payments']['captures'][0]['amount']['currency_code'],
                 'transaction_id': response_data['purchase_units'][0]['payments']['captures'][0]['id'],
-                'payment_time': response_data['purchase_units'][0]['payments']['captures'][0]['create_time'],
+                'payment_time': response_data['purchase_units'][0]['payments']['captures'][0]['create_time'][:10],
                 # 'links': response_data['purchase_units'][0]['payments']['captures'][0]['links']
             }
 
@@ -490,15 +540,53 @@ class PaymentViewSet(ModelViewSet):
                 if paycheque_id:
                     try:
                         paycheque = PaymentCheque.objects.get(pk=paycheque_id)
-                        paycheque.status = "A"
+                        paycheque.status = "COMPLETED"  # Assuming "A" means Approved
                         paycheque.save()
+                        
+                        payment_info['paycheque'] = paycheque
+                        payment = Payment.objects.create(**payment_info)
+                        
+                        serializer = PaymentSerializer(payment)  # No need to use 'data=' here
+                        
+                        return Response(serializer.data, status=status.HTTP_201_CREATED)
+                    
                     except PaymentCheque.DoesNotExist:
+                        return Response({'error': 'PaymentCheque not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # Handle other status codes and errors
+                return Response({"message": response_data}, status=response.status_code)
+
+
+class PaymentViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+        
+                 
+class UnfilledMedicalRecordsView(APIView):
+    def get(self, request, patient_id):
+        # Get all medical records for the specified patient
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+
+        # Filter those medical records that only have unfilled prescriptions
+        unfilled_medical_records = medical_records.annotate(
+            filled_prescription_count=Count('prescriptions', filter=Q(prescriptions__is_filled=True)),
+            total_prescription_count=Count('prescriptions')
+        ).filter(filled_prescription_count=0, total_prescription_count__gt=0).distinct()
+
+        # Serialize the medical record data
+        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
+        return Response(serializer.data)
+    
+    def get(self, request, patient_id):
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        serializer = MedicalRecordSerializer(medical_records, many=True)
+        return Response(serializer.data)
+
                         return Response({'error': 'PaymentCheque not found'}, status=404)
             return Response(payment_info, status=201)
         else:
             # Handle other status codes and errors
             return Response({"message": response_data}, status=response.status_code)
-                   
         
 class FillPrescriptionView(APIView):
     def patch(self, request, pk):
