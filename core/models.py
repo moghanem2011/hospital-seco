@@ -281,7 +281,7 @@ class PaymentCheque(models.Model):
     requested_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'PaymentChqeue is {self.status} and requested at {self.requested_at} for {self.roombooking or 'N/A'}.'
+        return f"PaymentChqeue is {self.status} and requested at {self.requested_at} for {self.roombooking or 'N/A'}."
     
 class Payment(models.Model):
     payment_id = models.CharField(max_length=255)

@@ -6,7 +6,6 @@ from .models import  Doctor, MedicalRecord, Medication, Payment, PaymentCheque, 
 import uuid
 from django.db.models import Count, Q
 import json
-import requests
 from django.utils import timezone
 from django.db.models import Q
 from .serializers import (
