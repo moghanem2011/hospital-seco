@@ -1,14 +1,16 @@
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import  Doctor, MedicalRecord, PaymentCheque, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
+from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
-import requests
+from django.db.models import Count, Q
 import json
 from .serializers import (
     
     MedicalRecordSerializer,
+    MedicationSerializer,
     PaymentSerializer,
+    PrescriptionSerializer,
     RoomBookingSerializer,
     RoomSerializer,
     SpecialtySerializer,
@@ -39,6 +41,14 @@ from user_auth.permissions import (
 )
 
 
+class MedicationListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Medication.objects.all()
+    serializer_class = MedicationSerializer
+
+class MedicationListAPIView(generics.ListAPIView):
+    queryset = Medication.objects.all()
+    serializer_class = MedicationSerializer
+    
 @api_view(['POST'])
 def generate_time_slots_api(request):
     doctor_id = request.data.get('doctor_id')
@@ -80,7 +90,7 @@ def generate_time_slots_api(request):
     return Response(response_data)
 
 @api_view(['GET'])
-def get_time_slots_for_doctor(request, doctor_id, day):
+def get_time_slots_for_doctor1(request, doctor_id, day):
     try:
         doctor = Doctor.objects.get(id=doctor_id)
     except Doctor.DoesNotExist:
@@ -128,11 +138,11 @@ def book_appointment(request):
         return Response({"error": "Patient not found."}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
-def get_time_slots_for_doctor(request, doctor_id, day):
+def Patientlist_for_doctor(request, doctor_id, day):
     doctor = get_object_or_404(Doctor, id=doctor_id)
 
     # Fetch all time slots for the specified day and doctor
-    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day)
+    time_slots = TimeSlot.objects.filter(doctor=doctor, day=day , is_booked=True)
 
     # Serialize the time slots
     serialized_time_slots = TimeSlotSerializer(time_slots, many=True)
@@ -143,6 +153,7 @@ def get_time_slots_for_doctor(request, doctor_id, day):
         "day": day,
          "time_slots": serialized_time_slots.data   
             })
+
 class DoctorSearchAPIView(generics.ListAPIView):
     queryset = Doctor.objects.all()
     serializer_class = doctorSerializer
@@ -478,4 +489,67 @@ class PaymentViewSet(ModelViewSet):
         else:
             # Handle other status codes and errors
             return Response({"message": response_data}, status=response.status_code)
-            
+                   
+class UnfilledMedicalRecordsView(APIView):
+    def get(self, request, patient_id):
+        # Get all medical records for the specified patient
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+
+        # Filter those medical records that only have unfilled prescriptions
+        unfilled_medical_records = medical_records.annotate(
+            filled_prescription_count=Count('prescriptions', filter=Q(prescriptions__is_filled=True)),
+            total_prescription_count=Count('prescriptions')
+        ).filter(filled_prescription_count=0, total_prescription_count__gt=0).distinct()
+
+        # Serialize the medical record data
+        serializer = MedicalRecordSerializer(unfilled_medical_records, many=True)
+        return Response(serializer.data)
+    def get(self, request, patient_id):
+        medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
+        serializer = MedicalRecordSerializer(medical_records, many=True)
+        return Response(serializer.data)
+        
+class FillPrescriptionView(APIView):
+    def patch(self, request, pk):
+        try:
+            prescription = Prescription.objects.get(pk=pk)
+        except Prescription.DoesNotExist:
+            return Response({'error': 'Prescription not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        prescription.is_filled = True
+        prescription.save()
+
+        serializer = PrescriptionSerializer(prescription)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+   
+class PatientsWithUnfilledPrescriptionsView(APIView):
+    def get(self, request):
+        # Find all medical records that are linked to at least one unfilled prescription
+        medical_records_with_unfilled = MedicalRecord.objects.filter(
+            prescriptions__is_filled=False
+        ).distinct()
+        
+        # Extract patients from these medical records
+        patients = {record.patient for record in medical_records_with_unfilled}
+        
+        # Serialize the patient data
+        serializer = PatientSerializer(list(patients), many=True)
+        return Response(serializer.data)
+    
+class MedicationSearchView(APIView):
+    def get(self, request):
+        # Get the query from request query parameters
+        query = request.query_params.get('query', None)
+
+        # Filter medications based on the query
+        if query is not None:
+            medications = Medication.objects.filter(
+                Q(name__icontains=query) | 
+                Q(description__icontains=query)
+            )
+        else:
+            medications = Medication.objects.all()
+
+        # Serialize the medication data
+        serializer = MedicationSerializer(medications, many=True)
+        return Response(serializer.data)

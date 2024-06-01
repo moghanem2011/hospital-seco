@@ -24,14 +24,20 @@ urlpatterns = [
     path('register/step2/', views.RegisterStepTwoAPIView.as_view(), name='register-step2'),  
     path('doctors/search/', views.DoctorSearchAPIView.as_view(), name='doctor-search'),
     path('generate-time-slots/', views.generate_time_slots_api, name='generate_time_slots_api'),
-    path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor, name='doctor_time_slots'),
+    path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor1, name='doctor_time_slots'),
     path('book-appointment/', views.book_appointment, name='book_appointment'),
-    path('doctor-time-slots/<int:doctor_id>/<str:day>/', views.get_time_slots_for_doctor, name='get_patients_for_doctor'),
+    path('Patientlsit/<int:doctor_id>/<str:day>/', views.Patientlist_for_doctor, name='get_patients_for_doctor'),
     path('login/', views.LoginAPIView.as_view(), name='doctor_login'),
     path('pharmacist/login/', views.LoginPHAPIView.as_view(), name='pharmacist_login'),
     path('medical_records/', views.MedicalRecordView.as_view(), name='medical_records'),
     path('medical_records/<int:id>/', views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
     path('patients/<int:patient_id>/medical_records/', views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
+    path('medications/', views.MedicationListCreateAPIView.as_view(), name='medication-list-create'),
+    path('medications/list/', views.MedicationListAPIView.as_view(), name='medication-list'),
+    path('patients/<int:patient_id>/unfilled-medical-records/', views.UnfilledMedicalRecordsView.as_view(), name='unfilled-medical-records'),
+    path('prescriptions/<int:pk>/fill/', views.FillPrescriptionView.as_view(), name='fill-prescription'),
+    path('patients/unfilled-prescriptions/', views.PatientsWithUnfilledPrescriptionsView.as_view(), name='patients-with-unfilled-prescriptions'),
+    path('medications/search/', views.MedicationSearchView.as_view(), name='medication-search'),
 ]
 urlpatterns += router.urls
 

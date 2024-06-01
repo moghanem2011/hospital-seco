@@ -8,6 +8,7 @@ from .models import (
     Diagnosis,
     Doctor,
     MedicalRecord,
+    Medication,
     PaymentCheque,
     Prescription,
     Room,
@@ -23,19 +24,34 @@ from .models import (
     
 )
 
+from rest_framework import serializers
+from .models import Medication
+
+class MedicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medication
+        fields = '__all__'
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
-    patient_id = serializers.IntegerField(source='patient.id', read_only=True)  # Add this line
+    patient_id = serializers.IntegerField(source='patient.id', read_only=True)
+    patient_image = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeSlot
-        fields = ['id', 'start_time', 'end_time', 'day', 'is_booked', 'patient_name', 'patient_id']  # Include patient_id here
+        fields = ['id', 'start_time', 'end_time', 'day', 'is_booked', 'patient_name', 'patient_id', 'patient_image']  # Include patient_image here
 
     def get_patient_name(self, obj):
         # This method returns the name of the patient if the slot is booked
         return obj.patient.firstname + " " + obj.patient.lastname if obj.patient else None
+
+    def get_patient_image(self, obj):
+        # This method returns the image URL of the patient if the slot is booked
+        request = self.context.get('request')
+        if obj.patient and obj.patient.photo:
+            return request.build_absolute_uri(obj.patient.photo.url) if request else obj.patient.photo.url
+        return None
 
     
 class PatientSerializer(serializers.ModelSerializer):
@@ -125,11 +141,11 @@ class DiagnosisSerializer(serializers.ModelSerializer):
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
-        fields = ['medication_name', 'dosage']
+        fields = ['medication_name', 'dosage', 'id' , 'is_filled']
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     diagnoses = DiagnosisSerializer(many=True)
-    prescriptions = PrescriptionSerializer(many=True)
+    prescriptions = serializers.SerializerMethodField()
     patient_id = serializers.IntegerField()
     doctor_id = serializers.IntegerField()  # Changed to doctor_id
     doctor_name = serializers.SerializerMethodField(read_only=True)
@@ -169,6 +185,10 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 
         medical_record.save()  # Explicitly call save to ensure the custom logic is executed
         return medical_record
+    def get_prescriptions(self, obj):
+        # Filtering out prescriptions where is_filled is True
+        unfilled_prescriptions = obj.prescriptions.filter(is_filled=False)
+        return PrescriptionSerializer(unfilled_prescriptions, many=True).data
     
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:

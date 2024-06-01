@@ -180,6 +180,8 @@ class Prescription(models.Model):
     medical_record = models.ForeignKey(MedicalRecord, related_name='prescriptions', on_delete=models.CASCADE)
     medication_name = models.CharField(max_length=100)
     dosage = models.CharField(max_length=100)
+    is_filled = models.BooleanField(default=False)
+
     
 class Room(models.Model):
     """Room data model for registering available rooms.
@@ -277,3 +279,20 @@ class PaymentCheque(models.Model):
     def __str__(self):
         return f'{self.status} {self.requested_at}'
     
+
+class Medication(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255)
+    dosage = models.CharField(max_length=50)
+    manufacturer = models.CharField(max_length=255)
+    form = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    expiry_date = models.DateField()
+    description = models.TextField()
+    side_effects = models.JSONField()  # Requires Django 3.1+
+    quantity = models.IntegerField()
+    availability = models.CharField(max_length=50)
+    photo = models.URLField(max_length=200)
+
+    def _str_(self):
+        return self.name
