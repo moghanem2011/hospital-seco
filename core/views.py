@@ -5,6 +5,7 @@ from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescript
 import uuid
 from django.db.models import Count, Q
 import json
+import requests
 from .serializers import (
     
     MedicalRecordSerializer,
