@@ -401,6 +401,7 @@ class RoomBookingsViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         room = serializer.validated_data['room']
+        patient = serializer.validated_data['patient']
         serializer.validated_data['check_in_date'] = timezone.now().date()
         check_in_date = serializer.validated_data['check_in_date']
         try:
@@ -409,15 +410,18 @@ class RoomBookingsViewSet(ModelViewSet):
             check_out_date = None
         
         # Check room availability
-        if not self.is_room_available(room, check_in_date, check_out_date):
-            return Response({"error": "Room is not available or not available for the selected dates."}, status=status.HTTP_400_BAD_REQUEST)
+        if not self.is_room_available(room, patient, check_in_date, check_out_date):
+            return Response({"error": "Room is not available or not available for the selected dates or due to existing booking with same patient."}, status=status.HTTP_400_BAD_REQUEST)
         
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
-    def is_room_available(self, room, check_in_date, check_out_date):
+    def is_room_available(self, room, patient, check_in_date, check_out_date):
         if not room.available:
+            return False
+        
+        if RoomBooking.objects.filter(room=room, patient=patient, status__in=['checked_in', 'booked']).exists():
             return False
         
         null_checkouts = RoomBooking.objects.filter(check_out_date__isnull=True)
