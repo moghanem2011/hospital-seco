@@ -5,6 +5,7 @@ from .models import  Doctor, MedicalRecord, Medication, PaymentCheque, Prescript
 import uuid
 from django.db.models import Count, Q
 import json
+import requests
 from .serializers import (
     
     MedicalRecordSerializer,
@@ -405,10 +406,8 @@ class PaymentViewSet(ModelViewSet):
     def paynow(self, request, *args, **kwargs):
         paypal_token = self.get_paypal_token(request)
         paycheque = self.get_object()
-        patient_id = request.data.get('patient_id')
-        booking_id = request.data.get('booking_id')
-        success_url = f"http://{request.get_host()}/api/payments/state/?status=successful&paycheque_id={paycheque.id}&booking_id={booking_id}/"
-        failed_url = f"http://{request.get_host()}/api/payments/state/?status=failed&paycheque_id={paycheque.id}&booking_id={booking_id}/"
+        success_url = f"http://{request.get_host()}/api/payments/state/?status=successful&paycheque_id={paycheque.id}"
+        failed_url = f"http://{request.get_host()}/api/payments/state/?status=failed&paycheque_id={paycheque.id}"
         
         data = {
             "intent": "CAPTURE",
@@ -419,7 +418,6 @@ class PaymentViewSet(ModelViewSet):
                     "value": paycheque.amount_to_be_paid
                 },
                 "paycheque": paycheque.id,
-                "description": f"Payment for booking {booking_id} by patient {patient_id}"
             }],
             "application_context": {
                 "shipping_preference": "NO_SHIPPING",
@@ -436,8 +434,6 @@ class PaymentViewSet(ModelViewSet):
         response = requests.post('https://api.sandbox.paypal.com/v2/checkout/orders', headers=headers, data=json.dumps(data))
         if response.status_code == 201:
             payment = response.json()
-            payment_id = payment['id']
-
             # Extract approval URL
             approval_url = next(link['href'] for link in payment['links'] if link['rel'] == 'approve')
             
@@ -453,10 +449,10 @@ class PaymentViewSet(ModelViewSet):
     def state(self, request):
         token = request.GET.get('token')
         payer_id = request.GET.get('PayerID')
-        
-        if not token or not payer_id:
+
+        if not token or (not payer_id and request.query_params.get('status') != "failed"):
             return Response({'error': 'Missing token or PayerID'}, status=400)
-        
+
         access_token = self.get_paypal_token(request)  # Implement this function to obtain access token
         
         capture_url = f'https://api.sandbox.paypal.com/v2/checkout/orders/{token}/capture'
@@ -464,22 +460,37 @@ class PaymentViewSet(ModelViewSet):
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}',
         }
+
         response = requests.post(capture_url, headers=headers)
-        
+        response_data = response.json()  # Extract JSON data from the response
+
         if response.status_code == 201:
+            payment_info = {
+                'payment_id': response_data.get('id'),
+                'status': response_data.get('status'),
+                'payer_name': f"{response_data['payer']['name']['given_name']} {response_data['payer']['name']['surname']}",
+                'payer_email': response_data['payer']['email_address'],
+                'amount': response_data['purchase_units'][0]['payments']['captures'][0]['amount']['value'],
+                'currency': response_data['purchase_units'][0]['payments']['captures'][0]['amount']['currency_code'],
+                'transaction_id': response_data['purchase_units'][0]['payments']['captures'][0]['id'],
+                'payment_time': response_data['purchase_units'][0]['payments']['captures'][0]['create_time'],
+                # 'links': response_data['purchase_units'][0]['payments']['captures'][0]['links']
+            }
+
             if request.query_params.get('status') == 'successful':
                 paycheque_id = request.query_params.get('paycheque_id')
-                booking_id = request.query_params.get('booking_id')
-                paychequ = PaymentCheque.objects.get(pk=paycheque_id)
-                paychequ.status = "A"
-                paychequ.save()
-                return Response({"message": f"Payment has been received successfully for booking no. {booking_id}",
-                                 "paycheque_status": "Accepted"})
-            else:
-                return Response({"Failed": "Payment was not successful."})
+                if paycheque_id:
+                    try:
+                        paycheque = PaymentCheque.objects.get(pk=paycheque_id)
+                        paycheque.status = "A"
+                        paycheque.save()
+                    except PaymentCheque.DoesNotExist:
+                        return Response({'error': 'PaymentCheque not found'}, status=404)
+            return Response(payment_info, status=201)
         else:
-            return Response({'error': response.text}, status=response.status_code)
-        
+            # Handle other status codes and errors
+            return Response({"message": response_data}, status=response.status_code)
+                   
 class UnfilledMedicalRecordsView(APIView):
     def get(self, request, patient_id):
         # Get all medical records for the specified patient
