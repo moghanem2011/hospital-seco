@@ -205,6 +205,8 @@ class Room(models.Model):
         ('recovery', 'Recovery Room'),
         ('isolation', 'Isolation Room'),
     ]
+    DEFAULT_ROOM_CAPACITY = 10
+    MAXIMUM_ROOM_CAPACITY = 10
     
     room_type = models.CharField(
         max_length=20,
@@ -213,7 +215,8 @@ class Room(models.Model):
     )
     available = models.BooleanField(default=True)
     room_capacity = models.PositiveBigIntegerField(validators=[MinValueValidator(1),
-                                                               MaxValueValidator(10)], default=1, blank=True)
+                                                               MaxValueValidator(MAXIMUM_ROOM_CAPACITY)],
+                                                   default=DEFAULT_ROOM_CAPACITY, blank=True)
 
     def __str__(self):
         """for representing rooms in the admin model and the browsable API"""

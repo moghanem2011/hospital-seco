@@ -581,13 +581,6 @@ class UnfilledMedicalRecordsView(APIView):
         medical_records = MedicalRecord.objects.filter(patient_id=patient_id)
         serializer = MedicalRecordSerializer(medical_records, many=True)
         return Response(serializer.data)
-
-                        return Response({'error': 'PaymentCheque not found'}, status=404)
-            return Response(payment_info, status=201)
-        else:
-            # Handle other status codes and errors
-            return Response({"message": response_data}, status=response.status_code)
-        
 class FillPrescriptionView(APIView):
     def patch(self, request, pk):
         try:
