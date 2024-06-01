@@ -229,7 +229,6 @@ class RoomBooking(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
-    payment = models.OneToOneField('PaymentCheque', on_delete=models.CASCADE, related_name='booking')
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     check_in_date = models.DateField(auto_now_add=True)
     check_out_date = models.DateField(null=True, blank=True)
