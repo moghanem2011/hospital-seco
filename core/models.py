@@ -209,7 +209,7 @@ class Room(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(MAXIMUM_ROOM_CAPACITY)],
         default=DEFAULT_ROOM_CAPACITY, blank=True
     )
-    photo = models.ImageField(upload_to='room_photos/')
+    photo = models.ImageField(upload_to='room_photos/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.get_room_type_display()} - {self.id}"
