@@ -208,7 +208,8 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ['id', 'room_type', 'room_capacity', 'available']
+        fields = ['id', 'room_type', 'available', 'room_capacity', 'photo']
+        extra_kwargs = {'photo': {'required': True}}
         
 class RoomBookingSerializer(serializers.ModelSerializer):
     check_in_date = serializers.DateField(read_only=True)

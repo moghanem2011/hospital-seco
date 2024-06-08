@@ -1,7 +1,8 @@
 from django.conf import settings
+from django.forms import ValidationError
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated , DjangoModelPermissions
 from .models import  Doctor, MedicalRecord, Medication, Payment, PaymentCheque, Prescription, Room, RoomBooking, Specialty, TimeSlot, generate_time_slots, managment, Patient, Pharmacy, Refound, Reception,Pharmacist
 import uuid
 from django.db.models import Count, Q
@@ -385,9 +386,12 @@ class PatientMedicalRecordsView(generics.ListAPIView):
 class RoomViewSet(ModelViewSet):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    
-    def get_serializer_context(self):
-        return {'request': self.request}
+
+    def perform_create(self, serializer):
+        if 'photo' in self.request.FILES:
+            serializer.save(photo=self.request.FILES['photo'])
+        else:
+            raise ValidationError({'photo': 'This field is required.'})
     
 class RoomBookingsViewSet(ModelViewSet):
     queryset = RoomBooking.objects.all()

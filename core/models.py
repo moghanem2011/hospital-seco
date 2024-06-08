@@ -183,17 +183,12 @@ class Prescription(models.Model):
     is_filled = models.BooleanField(default=False)
 
     
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.conf import settings
+import os
+
 class Room(models.Model):
-    """Room data model for registering available rooms.
-
-    Args:
-        models (room_type): this defines what kinda room we are creating or adding.
-        models (available): we will need this later when patients are booking rooms.
-
-    Returns:
-        _room object_: _room object that will be migrated into the database on command_
-    """
-    
     _ROOM_TYPES = [
         ('general_ward', 'General Ward'),
         ('semi_private', 'Semi-Private Room'),
@@ -208,22 +203,16 @@ class Room(models.Model):
     DEFAULT_ROOM_CAPACITY = 10
     MAXIMUM_ROOM_CAPACITY = 10
     
-    room_type = models.CharField(
-        max_length=20,
-        choices=_ROOM_TYPES,
-        default='general_ward',
-    )
+    room_type = models.CharField(max_length=20, choices=_ROOM_TYPES, default='general_ward')
     available = models.BooleanField(default=True)
-    room_capacity = models.PositiveBigIntegerField(validators=[MinValueValidator(1),
-                                                               MaxValueValidator(MAXIMUM_ROOM_CAPACITY)],
-                                                   default=DEFAULT_ROOM_CAPACITY, blank=True)
+    room_capacity = models.PositiveBigIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(MAXIMUM_ROOM_CAPACITY)],
+        default=DEFAULT_ROOM_CAPACITY, blank=True
+    )
+    photo = models.ImageField(upload_to='room_photos/')
 
     def __str__(self):
-        """for representing rooms in the admin model and the browsable API"""
-        return f"{self.room_type} - {self.id}"
-    
-    
-    
+        return f"{self.get_room_type_display()} - {self.id}"
     
 class RoomBooking(models.Model):
     """Booking data model for booking empty and available rooms."""
