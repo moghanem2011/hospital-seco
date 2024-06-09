@@ -1,6 +1,6 @@
 
 from django.contrib import admin
-from core.models import Doctor, managment, Patient, Pharmacy, Refound, Reception, Specialty,TimeSlot,MedicalRecord,Pharmacist
+from core.models import Doctor, managment, Patient, Pharmacy, Refound, Reception, Specialty,TimeSlot,MedicalRecord,Pharmacist , Room
 
 
 admin.site.register(Doctor)
@@ -13,5 +13,6 @@ admin.site.register(Specialty)
 admin.site.register(TimeSlot)
 admin.site.register(MedicalRecord)
 admin.site.register(Pharmacist)
+admin.site.register(Room)
 
 
