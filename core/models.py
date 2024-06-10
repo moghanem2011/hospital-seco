@@ -190,11 +190,11 @@ import os
 
 class Room(models.Model):
     _ROOM_TYPES = [
-        ('general_ward', 'General Ward'),
+        ('General room', 'General Room'),
         ('semi_private', 'Semi-Private Room'),
-        ('private', 'Private Room'),
+        ('Private room', 'Private Room'),
         ('deluxe', 'Deluxe Room'),
-        ('icu', 'Intensive Care Unit (ICU) Room'),
+        ('Icu Room', 'Intensive Care Unit (ICU) Room'),
         ('nicu', 'Neonatal Intensive Care Unit (NICU) Room'),
         ('maternity', 'Maternity Suite'),
         ('recovery', 'Recovery Room'),
